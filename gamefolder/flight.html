@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Flugzeug Spiel V11 - Waves, Better Bombs & Visuals</title>
+    <style>
+        /* CSS identisch zu V10 */
+        body { margin: 0; overflow: hidden; background-color: #303540; font-family: 'Arial', sans-serif;}
+        canvas { display: block; }
+        #info,#crosshair,#hud,#cockpitOverlay,#message { position: absolute; z-index: 100; }
+        #info { top: 10px; width: 100%; text-align: center; color: white; background-color: rgba(0,0,0,0.7); padding: 5px; font-size: 13px; cursor: pointer; }
+        #crosshair { top: 50%; left: 50%; width: 3px; height: 18px; background-color: rgba(80, 255, 80, 0.85); transform: translate(-50%, -50%); z-index: 101; pointer-events: none; display: none; border-radius: 1px; }
+        #crosshair::before { content: ''; position: absolute; top: 50%; left: -7px; width: 17px; height: 3px; background-color: rgba(80, 255, 80, 0.85); transform: translateY(-50%); border-radius: 1px; }
+        #hud { bottom: 10px; left: 10px; color: #50ff50; background-color: rgba(0,0,0,0.75); padding: 10px; border-radius: 6px; font-size: 15px; font-weight: bold; pointer-events: none; display: none; border: 1px solid rgba(80, 255, 80, 0.3); min-width: 280px; /* Mehr Platz für Wave */ }
+        #cockpitOverlay { top: 0; left: 0; width: 100%; height: 100%; border: 20px solid rgba(50, 50, 60, 0.6); border-top-width: 40px; border-bottom-width: 60px; box-sizing: border-box; pointer-events: none; z-index: 99; display: none; }
+        #message { bottom: 140px; width: 100%; text-align: center; color: #ffff90; font-size: 18px; text-shadow: 1px 1px 3px black; pointer-events: none; }
+        #hitOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 0, 0, 0); pointer-events: none; z-index: 102; transition: background-color 0.05s ease-out; display: block; }
+        .hit { background-color: rgba(255, 0, 0, 0.3); }
+    </style>
+</head>
+<body>
+    <div id="info">
+        Klicke hier oder auf das Spiel, um die Steuerung zu aktivieren.<br>
+        Maus: Umschauen/Lenken | W/S: Speed | A/D: Rollen | Leertaste/Shift: Höhe | L-Klick: Schießen | R-Klick: Bombe | V: Sicht wechseln
+    </div>
+    <div id="crosshair"></div>
+    <div id="cockpitOverlay"></div>
+    <div id="hud">
+        HP: <span id="hudPlayerHealth">1000</span> | Wave: <span id="hudWave">1</span> | Speed: <span id="hudSpeed">0</span> km/h | Alt: <span id="hudAltitude">0</span> m<br>
+        Enemies: <span id="hudEnemies">0</span>/<span id="hudEnemiesTotal">0</span> | Buildings: <span id="hudBuildings">0</span>%<br>
+        Gun: <span id="hudGunStatus">Ready</span> | Bomb: <span id="hudBombStatus">Ready</span>
+    </div>
+    <div id="message"></div>
+    <div id="hitOverlay"></div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.163.0/build/three.module.js" } }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // --- Core Variables ---
+        let scene, camera, renderer, clock, dirLight;
+        let playerAircraft, aircraftModel, propeller;
+        let isPointerLocked = false;
+        let currentViewMode = 'thirdPerson';
+        let gameRunning = true;
+
+        // --- Game Objects ---
+        let bullets = [], bombs = [], enemies = [], explosions = [], muzzleFlashes = [], sparks = [];
+        let enemyBullets = [];
+        let cityBuildings, buildingData = [];
+        let riverMesh;
+
+        // --- Player State ---
+        let playerHealth = 1000;
+        const playerCollisionRadius = 4.0;
+
+        // --- Wave System ---
+        let currentWave = 0; // Startet bei 0, init erhöht auf 1
+        let enemiesPerWaveBase = 4; // Startgegnerzahl Welle 1
+        let enemiesPerWaveIncrement = 2; // Zusätzliche Gegner pro Welle
+        let enemiesRemainingInWave = 0;
+        let totalEnemiesInWave = 0; // Für HUD Anzeige
+
+        // --- Controls & Physics (aus V10) ---
+        const moveState = { forward: 0, roll: 0, pitch: 0, yaw: 0, up: 0 };
+        let currentSpeed = 20;
+        const maxSpeed = 250; const minSpeed = 15; const acceleration = 75;
+        const rollSpeedFactor = 5.5; const pitchSpeed = 0.0040; const yawSpeed = 0.0040;
+        const climbSpeed = 55; const autoLevelFactor = 0.0; const stallPenaltyFactor = 1.8;
+        const propellerSpeedFactor = 0.08; const gravity = 9.81; // Wichtig für Bomben jetzt
+
+        // --- Game Parameters ---
+        // const initialEnemyCount = 8; // Wird jetzt durch Wellen gesteuert
+        const enemyScaleFactor = 2.0; // *** DEUTLICH GRÖSSERE GEGNER ***
+        const enemyHealth = 5;
+        const enemyCollisionRadius = 6 * enemyScaleFactor; // *** KOLLISIONSRADIUS ANGEPASST ***
+        const buildingMaxHealth = 10; const bombDamage = 25; const bulletDamage = 1;
+        const bombCollisionRadius = 2.0; const explosionDuration = 0.5; const explosionMaxSize = 35;
+        const citySize = 2500; const buildingGridSize = 55; const buildingInstanceCount = Math.floor(citySize / buildingGridSize) ** 2;
+        let initialBuildingCount = 0; const riverWidth = 180;
+
+        // --- Enemy AI & Weapon Parameters (aus V10) ---
+        const enemyBaseSpeed = 70; // Etwas langsamer wegen Größe
+        const enemyTurnSpeed = 0.5;
+        const enemyAltitudeCorrectionSpeed = 0.12;
+        const enemyMinAltitude = 30; const enemyMaxAltitude = 450; // Können höher fliegen
+        const enemyFireRate = 1.3; // Feuerrate leicht reduziert
+        const enemyBulletSpeed = 350; const enemyBulletDamage = 1;
+        const enemyShootingAngle = 0.8; const enemyShootingRange = 800;
+        const ENEMY_TYPE_FIGHTER = 'fighter'; const ENEMY_TYPE_BOMBER = 'bomber';
+
+        // --- Waffen Parameter & Effekte (aus V10) ---
+        const bulletSpeed = 600; const bulletCooldown = 0.08; let lastBulletTime = 0;
+        const bombLaunchSpeed = 280; const bombCooldown = 3.0; let lastBombTime = 0;
+        const muzzleFlashDuration = 0.05; const muzzleFlashSize = 1.8;
+        const sparkCount = 12; const sparkLifetime = 0.35; const sparkSpeed = 75; // Mehr/hellere Funken
+
+        // --- HUD & Messaging ---
+        let hudPlayerHealthElement, hudWaveElement, hudSpeedElement, hudAltitudeElement, hudEnemiesElement, hudEnemiesTotalElement,
+            hudBuildingsElement, hudGunStatusElement, hudBombStatusElement, messageElement, cockpitOverlayElement, messageTimeout, hitOverlayElement;
+
+        // --- Effects ---
+        let shakeIntensity = 0; let shakeDuration = 0; let shakeStartTime = 0;
+        const bombShakeIntensity = 0.20; const bombShakeDuration = 0.40;
+        const playerHitShakeIntensity = 0.12; const playerHitShakeDuration = 0.25;
+
+        // --- Helper Objects ---
+        const tempMatrix = new THREE.Matrix4(); const tempVector = new THREE.Vector3();
+        const tempVector2 = new THREE.Vector3(); const tempVector3 = new THREE.Vector3();
+        const tempQuaternion = new THREE.Quaternion(); const tempQuaternion2 = new THREE.Quaternion();
+        const tempColor = new THREE.Color(); const buildingBox = new THREE.Box3();
+        const muzzleFlashMaterial = new THREE.MeshBasicMaterial({ color: 0xfff8c0, side: THREE.DoubleSide, transparent: true, opacity: 1.0, depthWrite: false });
+        const muzzleFlashGeometry = new THREE.PlaneGeometry(muzzleFlashSize, muzzleFlashSize);
+        const sparkMaterial = new THREE.MeshBasicMaterial({ color: 0xfff5a5, emissive: 0xffff00, depthWrite: false, transparent: true });
+        const sparkGeometry = new THREE.SphereGeometry(0.2, 4, 2); // Größere Funken
+        const playerBulletMaterial = new THREE.MeshBasicMaterial({ color: 0xf0f090, emissive: 0xffff00 });
+        const playerBulletGeometry = new THREE.CapsuleGeometry(0.12, 1.5, 4, 8);
+        const enemyBulletMaterial = new THREE.MeshBasicMaterial({ color: 0xff6060, emissive: 0xff0000 });
+        const enemyBulletGeometry = new THREE.CapsuleGeometry(0.10, 1.2, 4, 8);
+        const bombGeometry = new THREE.SphereGeometry(1.1, 14, 10);
+        const bombMaterial = new THREE.MeshStandardMaterial({ color: 0x303035, metalness: 0.85, roughness: 0.35, emissive: 0x700000, emissiveIntensity: 0.6 });
+        const destroyedBuildingColor = new THREE.Color(0x605545); // Schuttfarbe angepasst
+
+        // --- Weapon Origins (Muzzle flash only) ---
+        const gunMuzzleOffsetLeft = new THREE.Vector3(-0.8, -0.2, -2.6); const gunMuzzleOffsetRight = new THREE.Vector3(0.8, -0.2, -2.6); const bombBayOffset = new THREE.Vector3(0, -0.7, -0.5); let shootLeft = true;
+
+        // --- Camera Positions ---
+        const thirdPersonOffset = new THREE.Vector3(0, 6, 18); const firstPersonOffset = new THREE.Vector3(0, 0.4, -0.8);
+
+        // --- City Color Palettes (Überarbeitet für mehr Farbe) ---
+        const downtownColors = [0x87CEEB, 0xAFEEEE, 0xB0C4DE, 0xADD8E6, 0xcccccc, 0x88aaff]; // Heller, blauer
+        const suburbColors = [0xFAA460, 0xFFD700, 0xCD5C5C, 0x9ACD32, 0xF4A460, 0x98FB98, 0xFFB6C1]; // Wärmer, vielfältiger
+
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB); // Hellerer Himmel
+            scene.fog = new THREE.Fog(0x87CEEB, 700, 1900); // Angepasster Nebel
+
+            clock = new THREE.Clock();
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 3500);
+
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15; // Etwas heller
+
+            setupLighting();
+            createGroundAndRiver();
+            createPlayerAircraft();
+            createCity(); // Verwendet buntere Paletten
+            setupHUDAndUI(); // Holt jetzt auch Wave-Anzeige
+            setupEventListeners();
+
+            // Starte die erste Welle
+            startWave(1);
+
+            updateCamera(0);
+            animate();
+        }
+
+        function setupLighting() { /* (Identical to V10) */ const hemiLight = new THREE.HemisphereLight(0xb0c0d5, 0x455055, 2.2); scene.add(hemiLight); dirLight = new THREE.DirectionalLight(0xfff5e8, 4.2); dirLight.position.set(200, 250, 150); dirLight.castShadow = true; dirLight.shadow.mapSize.width = 2048; dirLight.shadow.mapSize.height = 2048; dirLight.shadow.camera.near = 50; dirLight.shadow.camera.far = 1000; dirLight.shadow.camera.left = -400; dirLight.shadow.camera.right = 400; dirLight.shadow.camera.top = 400; dirLight.shadow.camera.bottom = -400; dirLight.shadow.bias = -0.004; scene.add(dirLight); scene.add(dirLight.target); }
+        function createGroundAndRiver() { /* (Identical to V10 - hellerer Boden) */ const groundGeometry = new THREE.PlaneGeometry(citySize * 2, citySize * 2); const groundMaterial = new THREE.MeshLambertMaterial({ color: 0xb8d0a0 }); const ground = new THREE.Mesh(groundGeometry, groundMaterial); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground); const riverGeometry = new THREE.PlaneGeometry(riverWidth, citySize * 2); const riverMaterial = new THREE.MeshStandardMaterial({ color: 0x6080cc, roughness: 0.1, metalness: 0.05, transparent: true, opacity: 0.9 }); riverMesh = new THREE.Mesh(riverGeometry, riverMaterial); riverMesh.rotation.x = -Math.PI / 2; riverMesh.position.y = 0.1; riverMesh.receiveShadow = true; scene.add(riverMesh); }
+        function createPlayerAircraft() { /* (Identical to V10) */ playerAircraft = new THREE.Group(); scene.add(playerAircraft); playerAircraft.position.set(0, 80, 0); createAircraftModelInternal(); playerAircraft.add(aircraftModel); }
+        function createAircraftModelInternal() { /* (Identical geometry to V10) */ aircraftModel = new THREE.Group(); const bodyMat = new THREE.MeshStandardMaterial({ color: 0xadb0b2, roughness: 0.5, metalness: 0.6 }); const wingMat = new THREE.MeshStandardMaterial({ color: 0xc0c2c5, roughness: 0.6, metalness: 0.4 }); const tailMat = new THREE.MeshStandardMaterial({ color: 0xdd4040, roughness: 0.6, metalness: 0.4 }); const cockpitMat = new THREE.MeshStandardMaterial({ color: 0x6080b0, roughness: 0.1, metalness: 0.5, transparent: true, opacity: 0.5 }); const propellerMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.4, metalness: 0.7 }); const fuselage = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.45, 5.5, 16), bodyMat); fuselage.rotation.x = Math.PI / 2; fuselage.position.z = 0; fuselage.castShadow = true; aircraftModel.add(fuselage); const wingShape = new THREE.Shape(); wingShape.moveTo(0, 0.6); wingShape.lineTo(5.5, 0.4); wingShape.lineTo(5.5, -0.4); wingShape.lineTo(0, -0.6); wingShape.lineTo(0, 0.6); const wingExtrudeSettings = { depth: 0.2, bevelEnabled: false }; const wingGeometry = new THREE.ExtrudeGeometry(wingShape, wingExtrudeSettings); const leftWing = new THREE.Mesh(wingGeometry, wingMat); leftWing.rotation.y = Math.PI / 2; leftWing.position.set(-0.15, 0, 1.2); leftWing.castShadow = true; aircraftModel.add(leftWing); const rightWing = new THREE.Mesh(wingGeometry, wingMat); rightWing.rotation.y = -Math.PI / 2; rightWing.position.set(0.15, 0, 1.2); rightWing.castShadow = true; aircraftModel.add(rightWing); const tailPlane = new THREE.Mesh(new THREE.BoxGeometry(4, 0.15, 1.2), wingMat); tailPlane.position.set(0, 0.1, 3.9); tailPlane.castShadow = true; aircraftModel.add(tailPlane); const rudder = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.3, 1.0), tailMat); rudder.position.set(0, 0.7, 4.0); rudder.castShadow = true; aircraftModel.add(rudder); const cockpit = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), cockpitMat); cockpit.scale.z = 1.9; cockpit.rotation.x = -Math.PI / 2; cockpit.position.set(0, 0.4, 1.0); aircraftModel.add(cockpit); propeller = new THREE.Group(); const bladeGeometry = new THREE.BoxGeometry(0.1, 1.8, 0.05); const blade1 = new THREE.Mesh(bladeGeometry, propellerMat); const blade2 = new THREE.Mesh(bladeGeometry, propellerMat); blade2.rotation.z = Math.PI / 2; propeller.add(blade1); propeller.add(blade2); propeller.position.set(0, 0, -2.75); propeller.castShadow = false; aircraftModel.add(propeller); }
+
+        // --- Erstellt GRÖSSERE Gegnerflugzeugmodelle mit deutlicheren Unterschieden ---
+        function createEnemyAircraftModel(type) {
+            const enemyAircraft = new THREE.Group();
+            const s = enemyScaleFactor; // Skalierungsfaktor
+
+            let bodyMat, wingMat, tailMat;
+            let fuselageGeo, wingGeo, tailPlaneGeo, rudderGeo;
+
+            if (type === ENEMY_TYPE_BOMBER) {
+                // "Bomber"-Variante: Dick, bullig, dunkelgrau/blau
+                bodyMat = new THREE.MeshStandardMaterial({ color: 0x556070, roughness: 0.7, metalness: 0.3 });
+                wingMat = new THREE.MeshStandardMaterial({ color: 0x657080, roughness: 0.8, metalness: 0.2 });
+                tailMat = new THREE.MeshStandardMaterial({ color: 0x455060, roughness: 0.8, metalness: 0.2 });
+
+                fuselageGeo = new THREE.CylinderGeometry(0.8*s, 0.65*s, 6.0*s, 12); // Dicker, länger
+                const wingShape = new THREE.Shape(); // Breitere, geradere Flügel
+                wingShape.moveTo(-1*s, 0.7*s); wingShape.lineTo(6.0*s, 0.6*s); wingShape.lineTo(6.0*s, -0.6*s); wingShape.lineTo(-1*s, -0.7*s); wingShape.lineTo(-1*s, 0.7*s);
+                wingGeo = new THREE.ExtrudeGeometry(wingShape, { depth: 0.3*s, bevelEnabled: false }); // Dickere Flügel
+                tailPlaneGeo = new THREE.BoxGeometry(5.0*s, 0.2*s, 1.5*s); // Großes Heckleitwerk
+                rudderGeo = new THREE.BoxGeometry(0.25*s, 1.4*s, 1.2*s); // Großes Seitenruder
+
+            } else { // Default: Fighter
+                 // Fighter: Schlank, rot (wie vorher, nur skaliert)
+                bodyMat = new THREE.MeshStandardMaterial({ color: 0xc04040, roughness: 0.6, metalness: 0.5 }); // Helleres Rot
+                wingMat = new THREE.MeshStandardMaterial({ color: 0xd05050, roughness: 0.7, metalness: 0.4 });
+                tailMat = new THREE.MeshStandardMaterial({ color: 0x903030, roughness: 0.7, metalness: 0.4 });
+
+                fuselageGeo = new THREE.CylinderGeometry(0.55*s, 0.4*s, 5.0*s, 12);
+                const wingShape = new THREE.Shape(); // Gepfeiltere Flügel
+                wingShape.moveTo(0, 0.5*s); wingShape.lineTo(5.0*s, 0.2*s); wingShape.lineTo(4.5*s, -0.2*s); wingShape.lineTo(0, -0.5*s); wingShape.lineTo(0, 0.5*s);
+                wingGeo = new THREE.ExtrudeGeometry(wingShape, { depth: 0.18*s, bevelEnabled: false });
+                tailPlaneGeo = new THREE.BoxGeometry(3.5*s, 0.12*s, 1.0*s);
+                rudderGeo = new THREE.BoxGeometry(0.18*s, 1.1*s, 0.8*s);
+            }
+
+            // Meshes erstellen und hinzufügen (Positionierung angepasst)
+            const fuselage = new THREE.Mesh(fuselageGeo, bodyMat); fuselage.rotation.x = Math.PI / 2; fuselage.position.z = 0; fuselage.castShadow = true; enemyAircraft.add(fuselage);
+            const wingPosX = type === ENEMY_TYPE_BOMBER ? 0 : 0.15*s; // Bomberflügel mittiger
+            const wingPosZ = type === ENEMY_TYPE_BOMBER ? 0.8*s : 1.0*s;
+            const leftWing = new THREE.Mesh(wingGeo, wingMat); leftWing.rotation.y = Math.PI / 2; leftWing.position.set(-wingPosX, 0, wingPosZ); leftWing.castShadow = true; enemyAircraft.add(leftWing);
+            const rightWing = new THREE.Mesh(wingGeo, wingMat); rightWing.rotation.y = -Math.PI / 2; rightWing.position.set(wingPosX, 0, wingPosZ); rightWing.castShadow = true; enemyAircraft.add(rightWing);
+            const tailPosZ = type === ENEMY_TYPE_BOMBER ? 4.0*s : 3.5*s; // Bomberheck weiter hinten
+            const tailPlane = new THREE.Mesh(tailPlaneGeo, wingMat); tailPlane.position.set(0, 0.1*s, tailPosZ); tailPlane.castShadow = true; enemyAircraft.add(tailPlane);
+            const rudder = new THREE.Mesh(rudderGeo, tailMat); rudder.position.set(0, 0.6*s, tailPosZ + 0.1*s); rudder.castShadow = true; enemyAircraft.add(rudder);
+
+            return enemyAircraft;
+        }
+
+        function createCity() { // --- Verwendet buntere Paletten ---
+             const buildingGeometry = new THREE.BoxGeometry(1, 1, 1); cityBuildings = new THREE.InstancedMesh(buildingGeometry, null, buildingInstanceCount); cityBuildings.castShadow = true; cityBuildings.receiveShadow = true; const downtownMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.65, metalness: 0.25 }); const suburbMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, metalness: 0.1 }); buildingData = []; initialBuildingCount = 0; let instanceIdx = 0; const halfCitySize = citySize / 2; const downtownBoundary = citySize * 0.25; for (let x = -halfCitySize; x < halfCitySize; x += buildingGridSize) { for (let z = -halfCitySize; z < halfCitySize; z += buildingGridSize) { if (instanceIdx >= buildingInstanceCount) break; const randomPlacementFactor = 0.6; const jitterX = (Math.random() - 0.5) * buildingGridSize * randomPlacementFactor; const jitterZ = (Math.random() - 0.5) * buildingGridSize * randomPlacementFactor; const posX = x + buildingGridSize / 2 + jitterX; const posZ = z + buildingGridSize / 2 + jitterZ; if (Math.abs(posX) < riverWidth / 2 + buildingGridSize * 0.5) continue; let buildingHeight, buildingWidth, buildingDepth, material, colorHex; const isDowntown = Math.abs(posX) < downtownBoundary && Math.abs(posZ) < downtownBoundary; if (isDowntown && Math.random() < 0.85) { material = downtownMaterial; buildingHeight = 80 + Math.random() * 220; buildingWidth = buildingGridSize * (0.6 + Math.random() * 0.3); buildingDepth = buildingGridSize * (0.6 + Math.random() * 0.3); colorHex = downtownColors[Math.floor(Math.random() * downtownColors.length)]; } else if (!isDowntown && Math.random() < 0.6) { // Mehr Vorstadthäuser
+                 material = suburbMaterial; buildingHeight = 8 + Math.random() * 30; // Etwas höher im Schnitt
+                 buildingWidth = buildingGridSize * (0.4 + Math.random() * 0.4); // Mehr Variation
+                 buildingDepth = buildingGridSize * (0.4 + Math.random() * 0.4); colorHex = suburbColors[Math.floor(Math.random() * suburbColors.length)]; } else { continue; } const posY = buildingHeight / 2; tempMatrix.compose( tempVector.set(posX, posY, posZ), tempQuaternion.identity(), tempVector2.set(buildingWidth, buildingHeight, buildingDepth) ); cityBuildings.setMatrixAt(instanceIdx, tempMatrix); tempColor.setHex(colorHex); tempColor.offsetHSL( (Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15 ); // Mehr Farbvariation
+                 cityBuildings.setColorAt(instanceIdx, tempColor); buildingData[instanceIdx] = { health: buildingMaxHealth, active: true, baseScale: { x: buildingWidth, y: buildingHeight, z: buildingDepth }, position: { x: posX, y: posY, z: posZ }, material: material, originalColor: tempColor.clone() }; initialBuildingCount++; instanceIdx++; } if (instanceIdx >= buildingInstanceCount) break; } cityBuildings.count = instanceIdx; cityBuildings.material = suburbMaterial; cityBuildings.instanceMatrix.needsUpdate = true; if (cityBuildings.instanceColor) cityBuildings.instanceColor.needsUpdate = true; scene.add(cityBuildings);
+        }
+
+        // --- Startet eine neue Welle ---
+        function startWave(waveNum) {
+            if (!gameRunning) return; // Keine neuen Wellen nach Game Over
+
+            currentWave = waveNum;
+            enemies = []; // Alte Gegner löschen (oder behalten für überlappende Wellen?)
+            enemyBullets = []; // Alte Gegnerkugeln löschen
+
+            totalEnemiesInWave = enemiesPerWaveBase + (currentWave - 1) * enemiesPerWaveIncrement;
+            enemiesRemainingInWave = totalEnemiesInWave;
+
+            console.log(`Starting Wave ${currentWave} with ${totalEnemiesInWave} enemies.`);
+            showTemporaryMessage(`Wave ${currentWave}`, 3000);
+
+            // Spawn enemies for the wave
+            for (let i = 0; i < totalEnemiesInWave; i++) {
+                // Mehr Fighter in späteren Wellen?
+                 const bomberChance = Math.max(0.1, 0.4 - (currentWave * 0.05)); // Weniger Bomber später
+                 const type = Math.random() < bomberChance ? ENEMY_TYPE_BOMBER : ENEMY_TYPE_FIGHTER;
+                // Leichte Verzögerung beim Spawnen?
+                // setTimeout(() => spawnEnemy(type), i * 100); // Optional: Gestaffelt spawnen
+                 spawnEnemy(type);
+            }
+            updateHUD(); // HUD sofort aktualisieren
+        }
+
+
+        function spawnEnemy(type = ENEMY_TYPE_FIGHTER) { // Nimmt Typ entgegen, leicht modifiziert
+            const enemyAircraftObject = createEnemyAircraftModel(type);
+            const enemyGroup = new THREE.Group();
+            enemyGroup.add(enemyAircraftObject);
+
+            // Weiter weg spawnen
+            const angle = Math.random() * Math.PI * 2; const distance = citySize * 1.0 + Math.random() * 600;
+            const startX = playerAircraft.position.x + Math.cos(angle) * distance; const startZ = playerAircraft.position.z + Math.sin(angle) * distance; const startY = enemyMinAltitude + Math.random() * (enemyMaxAltitude - enemyMinAltitude);
+            enemyGroup.position.set(startX, startY, startZ);
+
+            const directionToPlayerApprox = tempVector.copy(playerAircraft.position).sub(enemyGroup.position).normalize();
+            // Startrichtung leicht variieren
+            directionToPlayerApprox.applyAxisAngle(tempVector2.set(0,1,0), (Math.random() - 0.5) * 0.8);
+
+            const speed = enemyBaseSpeed * (type === ENEMY_TYPE_BOMBER ? 0.85 : 1.0) * (1 + (currentWave-1)*0.05); // Speed steigt leicht mit Welle
+            enemyGroup.userData.baseSpeed = speed;
+            enemyGroup.userData.velocity = directionToPlayerApprox.multiplyScalar(speed);
+            enemyGroup.lookAt(enemyGroup.position.clone().add(enemyGroup.userData.velocity));
+            enemyGroup.userData.health = enemyHealth * (type === ENEMY_TYPE_BOMBER ? 1.5 : 1.0) * (1 + (currentWave-1)*0.1); // HP steigt mit Welle
+            enemyGroup.userData.hitTimer = 0;
+            enemyGroup.userData.type = type;
+            enemyGroup.userData.lastShotTime = clock.getElapsedTime() + Math.random() * (1 / enemyFireRate);
+            enemyGroup.castShadow = true; enemies.push(enemyGroup); scene.add(enemyGroup);
+            // updateHUD(); // Wird jetzt zentral in startWave und handleEnemyHit gemacht
+        }
+
+
+        function setupHUDAndUI() { // --- Fügt Wave Anzeige hinzu ---
+            hudPlayerHealthElement = document.getElementById('hudPlayerHealth');
+            hudWaveElement = document.getElementById('hudWave'); // *** NEU ***
+            hudSpeedElement = document.getElementById('hudSpeed'); hudAltitudeElement = document.getElementById('hudAltitude');
+            hudEnemiesElement = document.getElementById('hudEnemies');
+            hudEnemiesTotalElement = document.getElementById('hudEnemiesTotal'); // *** NEU ***
+            hudBuildingsElement = document.getElementById('hudBuildings'); hudGunStatusElement = document.getElementById('hudGunStatus'); hudBombStatusElement = document.getElementById('hudBombStatus'); messageElement = document.getElementById('message'); cockpitOverlayElement = document.getElementById('cockpitOverlay');
+            hitOverlayElement = document.getElementById('hitOverlay');
+            updateHUD(); // Initial HUD update
+        }
+
+        function setupEventListeners() { /* (Identical to V10) */ const infoElement = document.getElementById('info'); const canvasElement = renderer.domElement; function requestLock() { if (!isPointerLocked && gameRunning) canvasElement.requestPointerLock({ unadjustedMovement: true }).catch(err => console.warn("Pointer lock failed:", err)); } infoElement.addEventListener('click', requestLock); canvasElement.addEventListener('click', requestLock); document.addEventListener('pointerlockchange', onPointerLockChange, false); document.addEventListener('mozpointerlockchange', onPointerLockChange, false); document.addEventListener('webkitpointerlockchange', onPointerLockChange, false); document.addEventListener('keydown', onKeyDown); document.addEventListener('keyup', onKeyUp); document.addEventListener('mousemove', onMouseMove); canvasElement.addEventListener('mousedown', onMouseDown); canvasElement.addEventListener('contextmenu', (event) => event.preventDefault()); }
+        function onPointerLockChange() { /* (Identical to V10) */ const hud = document.getElementById('hud'); const crosshair = document.getElementById('crosshair'); const info = document.getElementById('info'); if (document.pointerLockElement === renderer.domElement || document.mozPointerLockElement === renderer.domElement || document.webkitPointerLockElement === renderer.domElement) { console.log("Pointer Locked"); isPointerLocked = true; info.style.display = 'none'; crosshair.style.display = 'block'; hud.style.display = 'block'; cockpitOverlayElement.style.display = (currentViewMode === 'firstPerson') ? 'block' : 'none'; messageElement.textContent = ''; } else { console.log("Pointer Unlocked"); isPointerLocked = false; info.style.display = 'block'; crosshair.style.display = 'none'; hud.style.display = 'none'; cockpitOverlayElement.style.display = 'none'; Object.keys(moveState).forEach(key => moveState[key] = 0); } }
+        function onKeyDown(event) { /* (Identical to V10) */ if (!isPointerLocked || !gameRunning) return; switch (event.code) { case 'KeyW': moveState.forward = 1; break; case 'KeyS': moveState.forward = -1; break; case 'KeyA': moveState.roll = 1; break; case 'KeyD': moveState.roll = -1; break; case 'Space': moveState.up = 1; break; case 'ShiftLeft': moveState.up = -1; break; case 'KeyV': currentViewMode = (currentViewMode === 'thirdPerson') ? 'firstPerson' : 'thirdPerson'; cockpitOverlayElement.style.display = (currentViewMode === 'firstPerson') ? 'block' : 'none'; console.log("View Mode:", currentViewMode); break; } }
+        function onKeyUp(event) { /* (Identical to V10) */ if (!isPointerLocked || !gameRunning) return; switch (event.code) { case 'KeyW': if (moveState.forward > 0) moveState.forward = 0; break; case 'KeyS': if (moveState.forward < 0) moveState.forward = 0; break; case 'KeyA': if (moveState.roll > 0) moveState.roll = 0; break; case 'KeyD': if (moveState.roll < 0) moveState.roll = 0; break; case 'Space': if (moveState.up > 0) moveState.up = 0; break; case 'ShiftLeft': if (moveState.up < 0) moveState.up = 0; break; } }
+        function onMouseMove(event) { /* (Identical to V10) */ if (!isPointerLocked || !gameRunning) return; moveState.yaw = -(event.movementX || event.mozMovementX || event.webkitMovementX || 0) * yawSpeed; moveState.pitch = -(event.movementY || event.mozMovementY || event.webkitMovementY || 0) * pitchSpeed; }
+        function onMouseDown(event) { /* (Identical to V10) */ if (!isPointerLocked || !gameRunning) return; if (event.button === 0) shoot(); else if (event.button === 2) launchBomb(); }
+
+
+        // --- Game Logic Updates ---
+        function updatePlayer(deltaTime) { /* (Identical physics/controls to V10) */ if(!gameRunning) return; if (moveState.forward > 0) currentSpeed += acceleration * deltaTime; else if (moveState.forward < 0) currentSpeed -= acceleration * deltaTime * 2.5; else currentSpeed *= (1 - (0.06 + currentSpeed / maxSpeed * 0.20) * deltaTime); currentSpeed = Math.max(minSpeed, Math.min(maxSpeed, currentSpeed)); const forwardVector = tempVector.set(0, 0, -1).applyQuaternion(playerAircraft.quaternion); playerAircraft.position.addScaledVector(forwardVector, currentSpeed * deltaTime); let effectiveVerticalSpeed = moveState.up * climbSpeed; let effectiveGravity = gravity; if (currentSpeed < minSpeed * 1.2 && moveState.up <= 0) { effectiveGravity *= stallPenaltyFactor * (1 - currentSpeed / (minSpeed * 1.2)); effectiveVerticalSpeed -= effectiveGravity * 0.6; } else { effectiveVerticalSpeed -= effectiveGravity * 0.1; } playerAircraft.position.y += effectiveVerticalSpeed * deltaTime; if (playerAircraft.position.y < 1.5) { playerAircraft.position.y = 1.5; currentSpeed *= 0.80; } playerAircraft.rotateOnWorldAxis(tempVector2.set(0, 1, 0), moveState.yaw); playerAircraft.rotateOnAxis(tempVector2.set(1, 0, 0), moveState.pitch); playerAircraft.rotateOnAxis(tempVector2.set(0, 0, 1), moveState.roll * rollSpeedFactor * deltaTime); moveState.pitch = 0; moveState.yaw = 0; if (propeller) propeller.rotation.z += (currentSpeed + 15) * propellerSpeedFactor * deltaTime; dirLight.target.position.copy(playerAircraft.position); }
+        function updateBullets(deltaTime) { /* (Identical logic to V10 - player bullets) */ for (let i = bullets.length - 1; i >= 0; i--) { const bullet = bullets[i]; bullet.position.addScaledVector(bullet.userData.velocity, deltaTime); bullet.userData.lifetime -= deltaTime; let hit = false; for (let j = enemies.length - 1; j >= 0; j--) { const enemy = enemies[j]; if (bullet.position.distanceTo(enemy.position) < enemyCollisionRadius) { handleEnemyHit(enemy, bulletDamage, bullet.position); hit = true; break; } } if (hit || bullet.userData.lifetime <= 0 || bullet.position.y < -1) { scene.remove(bullet); bullets.splice(i, 1); } else { bullet.lookAt(tempVector.copy(bullet.position).add(bullet.userData.velocity)); } } }
+
+        function updateBombs(deltaTime) { // --- BOMBE mit normaler Schwerkraft ---
+             for (let i = bombs.length - 1; i >= 0; i--) {
+                 const bomb = bombs[i];
+                 // Normale Schwerkraft für deutliche Kurve
+                 bomb.userData.velocity.y -= gravity * deltaTime * 1.0; // <<< NORMALE GRAVITY WIEDER DA
+                 bomb.position.addScaledVector(bomb.userData.velocity, deltaTime);
+                 bomb.userData.lifetime -= deltaTime;
+                 let removed = false;
+
+                 // Collision checks (ground, buildings, enemies)
+                 const bombRadiusCheck = bombCollisionRadius;
+                 if (bomb.position.y <= bombRadiusCheck) { createExplosion(bomb.position.setY(0), explosionMaxSize * 1.5, 0xff8c00); checkBuildingDamageFromExplosion(bomb.position, bombDamage * 2.5, explosionMaxSize * 2.0); triggerShake(bombShakeIntensity * 1.2, bombShakeDuration * 1.2); scene.remove(bomb); bombs.splice(i, 1); removed = true; }
+                 else if (!removed && cityBuildings) { for (let k = 0; k < cityBuildings.count; k++) { if (!buildingData[k] || !buildingData[k].active) continue; cityBuildings.getMatrixAt(k, tempMatrix); const buildingCenter = tempVector.setFromMatrixPosition(tempMatrix); const scale = buildingData[k].baseScale; buildingBox.setFromCenterAndSize(buildingCenter, tempVector2.set(scale.x, scale.y, scale.z)); if (buildingBox.containsPoint(bomb.position)) { createExplosion(bomb.position, explosionMaxSize, 0xffa500); handleBuildingHit(k, bombDamage, bomb.position); triggerShake(bombShakeIntensity, bombShakeDuration); scene.remove(bomb); bombs.splice(i, 1); removed = true; break; } } }
+                 if (!removed) { for (let j = enemies.length - 1; j >= 0; j--) { const enemy = enemies[j]; if (bomb.position.distanceTo(enemy.position) < enemyCollisionRadius + bombCollisionRadius) { createExplosion(bomb.position, explosionMaxSize * 1.2, 0xffa050); handleEnemyHit(enemy, bombDamage * 1.5, bomb.position); triggerShake(bombShakeIntensity, bombShakeDuration); scene.remove(bomb); bombs.splice(i, 1); removed = true; break; } } }
+
+                 if (!removed && bomb.userData.lifetime <= 0) { scene.remove(bomb); bombs.splice(i, 1); }
+             }
+        }
+
+        function updateEnemies(deltaTime) { /* (Identical AI & Shooting logic to V10) */ const boundary = citySize * 0.95; const now = clock.getElapsedTime(); for (let i = enemies.length - 1; i >= 0; i--) { const enemy = enemies[i]; if (!enemy.userData) continue; const directionToPlayer = tempVector.copy(playerAircraft.position).sub(enemy.position); const distanceToPlayer = directionToPlayer.length(); directionToPlayer.normalize(); let targetSpeed = enemy.userData.baseSpeed; const desiredVelocity = directionToPlayer.clone().multiplyScalar(targetSpeed); const currentVelocity = enemy.userData.velocity; currentVelocity.lerp(desiredVelocity, enemyTurnSpeed * deltaTime); currentVelocity.normalize().multiplyScalar(targetSpeed); let targetAltitude = THREE.MathUtils.clamp(playerAircraft.position.y, enemyMinAltitude, enemyMaxAltitude); let altitudeError = targetAltitude - enemy.position.y; currentVelocity.y += altitudeError * enemyAltitudeCorrectionSpeed * deltaTime * 50; currentVelocity.y = THREE.MathUtils.clamp(currentVelocity.y, -targetSpeed * 0.4, targetSpeed * 0.4); if (Math.abs(enemy.position.x) > boundary || Math.abs(enemy.position.z) > boundary || enemy.position.y > enemyMaxAltitude * 1.1 || enemy.position.y < enemyMinAltitude * 0.8 ) { const directionToCenter = tempVector2.set(-enemy.position.x, 0, -enemy.position.z).normalize(); currentVelocity.lerp(directionToCenter.multiplyScalar(targetSpeed), 1.5 * deltaTime); } enemy.position.addScaledVector(currentVelocity, deltaTime); const lookAtTarget = tempVector3.copy(enemy.position).add(currentVelocity.clone().normalize().multiplyScalar(10)); lookAtTarget.y += 0.5; enemy.lookAt(lookAtTarget); if (gameRunning && now > enemy.userData.lastShotTime + (1 / enemyFireRate) && distanceToPlayer < enemyShootingRange) { const enemyForward = tempVector2.set(0, 0, -1).applyQuaternion(enemy.quaternion); const dot = enemyForward.dot(directionToPlayer); if (dot > enemyShootingAngle) { enemyShoot(enemy); enemy.userData.lastShotTime = now; } } if (enemy.userData.hitTimer > 0) { enemy.userData.hitTimer -= deltaTime; if (enemy.userData.hitTimer <= 0) { const model = enemy.children[0]; if(model) { model.traverse(child => { if(child.isMesh && child.material && child.material.emissive) child.material.emissive.setHex(0x000000); }); } } } } }
+        function enemyShoot(enemy) { /* (Identical logic to V10) */ const enemyMuzzleOffset = tempVector.set(0, 0, -enemyScaleFactor * 2.5); const worldMuzzlePos = enemyMuzzleOffset.applyMatrix4(enemy.matrixWorld); const direction = tempVector2.copy(playerAircraft.position).sub(worldMuzzlePos).normalize(); const bullet = new THREE.Mesh(enemyBulletGeometry, enemyBulletMaterial); bullet.position.copy(worldMuzzlePos); bullet.lookAt(playerAircraft.position); bullet.userData.velocity = direction.multiplyScalar(enemyBulletSpeed); bullet.userData.lifetime = enemyShootingRange / enemyBulletSpeed + 0.5; enemyBullets.push(bullet); scene.add(bullet); }
+        function updateEnemyBullets(deltaTime) { /* (Identical logic to V10) */ for (let i = enemyBullets.length - 1; i >= 0; i--) { const bullet = enemyBullets[i]; bullet.position.addScaledVector(bullet.userData.velocity, deltaTime); bullet.userData.lifetime -= deltaTime; let hitPlayer = false; if (gameRunning && bullet.position.distanceTo(playerAircraft.position) < playerCollisionRadius) { handlePlayerHit(enemyBulletDamage); hitPlayer = true; } if (hitPlayer || bullet.userData.lifetime <= 0 || bullet.position.y < -1) { scene.remove(bullet); enemyBullets.splice(i, 1); } } }
+        function updateExplosions(deltaTime) { /* (Identical to V10) */ const now = clock.getElapsedTime(); for (let i = explosions.length - 1; i >= 0; i--) { const explosion = explosions[i]; const elapsedTime = now - explosion.userData.startTime; const progress = Math.min(elapsedTime / explosion.userData.duration, 1); if (progress >= 1) { scene.remove(explosion); explosions.splice(i, 1); } else { const easeOutQuart = 1 - Math.pow(1 - progress, 4); const currentSize = 0.1 + explosion.userData.maxSize * easeOutQuart; explosion.scale.set(currentSize, currentSize, currentSize); explosion.material.opacity = 0.95 * (1 - progress * progress); } } }
+        function updateMuzzleFlashes(deltaTime) { /* (Identical logic to V10) */ for (let i = muzzleFlashes.length - 1; i >= 0; i--) { const flash = muzzleFlashes[i]; flash.userData.lifetime -= deltaTime; if (flash.userData.lifetime <= 0) { scene.remove(flash); muzzleFlashes.splice(i, 1); } else { const muzzleOffset = flash.userData.isLeft ? gunMuzzleOffsetLeft : gunMuzzleOffsetRight; const worldMuzzlePos = tempVector.copy(muzzleOffset).applyMatrix4(playerAircraft.matrixWorld); flash.position.copy(worldMuzzlePos); flash.quaternion.copy(playerAircraft.quaternion); flash.material.opacity = (flash.userData.lifetime / muzzleFlashDuration); } } }
+        function updateSparks(deltaTime) { /* (Identical logic to V10 - uses larger sparks) */ for (let i = sparks.length - 1; i >= 0; i--) { const spark = sparks[i]; spark.position.addScaledVector(spark.userData.velocity, deltaTime); spark.userData.lifetime -= deltaTime; if (spark.userData.lifetime <= 0) { scene.remove(spark); sparks.splice(i, 1); } else { const lifeRatio = spark.userData.lifetime / spark.userData.initialLifetime; spark.material.opacity = lifeRatio * 0.9; const scale = 1.0 * lifeRatio; spark.scale.set(scale, scale, scale); } } }
+        function updateCamera(deltaTime) { /* (Identical logic to V10) */ aircraftModel.visible = (currentViewMode === 'thirdPerson'); let finalCameraPosition = tempVector3.copy(camera.position); let finalLookAtTarget = new THREE.Vector3(); if (currentViewMode === 'firstPerson') { const targetCameraPosition = playerAircraft.localToWorld(firstPersonOffset.clone()); finalCameraPosition.copy(targetCameraPosition); const lookAtTargetLocal = firstPersonOffset.clone().add(tempVector.set(0, 0, -100)); const lookAtTargetWorld = playerAircraft.localToWorld(lookAtTargetLocal); finalLookAtTarget.copy(lookAtTargetWorld); } else { const speedFactor = 1 + (currentSpeed / maxSpeed) * 0.3; const cameraOffset = tempVector.copy(thirdPersonOffset).multiplyScalar(speedFactor); cameraOffset.applyQuaternion(playerAircraft.getWorldQuaternion(tempQuaternion2)); const targetCameraPosition = tempVector2.copy(playerAircraft.position).add(cameraOffset); finalCameraPosition.lerp(targetCameraPosition, 12 * deltaTime); const lookAheadDistance = 18 + currentSpeed * 0.12; const lookAtTarget = tempVector2.set(0, 0, -lookAheadDistance); lookAtTarget.applyQuaternion(playerAircraft.getWorldQuaternion(tempQuaternion2)).add(playerAircraft.position); finalLookAtTarget.copy(lookAtTarget); } const now = clock.getElapsedTime(); if (now < shakeStartTime + shakeDuration) { const timeRemaining = (shakeStartTime + shakeDuration) - now; const currentIntensity = shakeIntensity * (timeRemaining / shakeDuration); finalCameraPosition.x += (Math.random() - 0.5) * currentIntensity; finalCameraPosition.y += (Math.random() - 0.5) * currentIntensity; finalCameraPosition.z += (Math.random() - 0.5) * currentIntensity; } else { shakeIntensity = 0; } camera.position.copy(finalCameraPosition); camera.lookAt(finalLookAtTarget); }
+
+        function updateHUD() { // --- Aktualisiert jetzt Wave und Gegnerzahl ---
+            if (!hudPlayerHealthElement) return; // Warten bis Elemente da sind
+
+            hudPlayerHealthElement.textContent = Math.max(0, Math.round(playerHealth));
+            if (playerHealth < 250) hudPlayerHealthElement.style.color = '#ff4040';
+            else if (playerHealth < 600) hudPlayerHealthElement.style.color = '#ffff40';
+            else hudPlayerHealthElement.style.color = '#50ff50';
+
+            hudWaveElement.textContent = currentWave; // Zeige Welle an
+            hudEnemiesElement.textContent = enemiesRemainingInWave; // Zeige verbleibende Gegner
+            hudEnemiesTotalElement.textContent = totalEnemiesInWave; // Zeige Gesamtgegner der Welle
+
+            if (!isPointerLocked) return;
+            hudSpeedElement.textContent = Math.round(currentSpeed * 3.6);
+            hudAltitudeElement.textContent = Math.round(playerAircraft.position.y);
+            let activeBuildings = 0; for(let i = 0; i < cityBuildings.count; i++) { if (buildingData[i] && buildingData[i].active) activeBuildings++; }
+            const buildingsPercent = initialBuildingCount > 0 ? Math.round((activeBuildings / initialBuildingCount) * 100) : 0;
+            hudBuildingsElement.textContent = buildingsPercent;
+            const now = clock.getElapsedTime(); const gunCooldownRemaining = Math.max(0, bulletCooldown - (now - lastBulletTime)); const bombCooldownRemaining = Math.max(0, bombCooldown - (now - lastBombTime));
+            hudGunStatusElement.textContent = gameRunning ? (gunCooldownRemaining > 0 ? `${gunCooldownRemaining.toFixed(1)}s` : "Ready") : "---";
+            hudBombStatusElement.textContent = gameRunning ? (bombCooldownRemaining > 0 ? `${bombCooldownRemaining.toFixed(1)}s` : "Ready") : "---";
+            hudGunStatusElement.style.color = gunCooldownRemaining > 0 ? "#ffcc00" : "#50ff50"; hudBombStatusElement.style.color = bombCooldownRemaining > 0 ? "#ffcc00" : "#50ff50";
+        }
+
+
+        // --- Game Actions & Effects ---
+        function shoot() { /* (Identical logic to V10 - center screen aim) */ if (!isPointerLocked || !gameRunning) return; const now = clock.getElapsedTime(); if (now - lastBulletTime < bulletCooldown) return; lastBulletTime = now; const camDirection = camera.getWorldDirection(tempVector); const startPos = tempVector2.copy(camera.position).addScaledVector(camDirection, 2.0); const direction = camDirection; const bullet = new THREE.Mesh(playerBulletGeometry, playerBulletMaterial); bullet.position.copy(startPos); bullet.quaternion.copy(camera.quaternion); bullet.userData.velocity = direction.clone().multiplyScalar(bulletSpeed + currentSpeed); bullet.userData.lifetime = 2.0; bullets.push(bullet); scene.add(bullet); const flash = new THREE.Mesh(muzzleFlashGeometry, muzzleFlashMaterial.clone()); flash.userData.lifetime = muzzleFlashDuration; flash.userData.isLeft = shootLeft; muzzleFlashes.push(flash); scene.add(flash); shootLeft = !shootLeft; }
+
+        function launchBomb() { // --- BOMBE MIT INITIALEM DROP ---
+            if (!isPointerLocked || !gameRunning) return;
+            const now = clock.getElapsedTime();
+            if (now - lastBombTime < bombCooldown) { showTemporaryMessage(`Bombe bereit in ${(bombCooldown - (now - lastBombTime)).toFixed(1)}s`, 1000); return; }
+            lastBombTime = now;
+
+            const worldBombPos = tempVector.copy(bombBayOffset).applyMatrix4(playerAircraft.matrixWorld);
+            const direction = tempVector2.set(0, 0, -1).applyQuaternion(playerAircraft.getWorldQuaternion(tempQuaternion));
+            const bomb = new THREE.Mesh(bombGeometry, bombMaterial);
+            bomb.position.copy(worldBombPos);
+            bomb.castShadow = true;
+            bomb.userData.velocity = direction.multiplyScalar(bombLaunchSpeed + currentSpeed);
+            // *** Starker initialer Drop für schnellere Kurve ***
+            bomb.userData.velocity.y -= 15 + Math.random() * 5;
+            bomb.userData.lifetime = 5.0; // Etwas längere Lebensdauer
+            bombs.push(bomb); scene.add(bomb); showTemporaryMessage("Bombe abgeworfen!", 1500);
+        }
+
+        function createExplosion(position, size, color) { /* (Identical to V10) */ const explosionGeometry = new THREE.SphereGeometry(0.1, 16, 16); const explosionMaterial = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.95, depthWrite: false, emissive: color, emissiveIntensity: 0.5 }); const explosion = new THREE.Mesh(explosionGeometry, explosionMaterial); explosion.position.copy(position); explosion.userData.startTime = clock.getElapsedTime(); explosion.userData.maxSize = size; explosion.userData.duration = explosionDuration * (0.8 + Math.random() * 0.4); explosions.push(explosion); scene.add(explosion); }
+        function createSparks(position) { /* (Identical logic to V10, uses larger sparks) */ for (let i = 0; i < sparkCount; i++) { const spark = new THREE.Mesh(sparkGeometry, sparkMaterial.clone()); spark.position.copy(position); spark.userData.velocity = new THREE.Vector3( (Math.random() - 0.5), (Math.random() - 0.5), (Math.random() - 0.5) ).normalize().multiplyScalar(sparkSpeed * (0.8 + Math.random() * 0.4)); spark.userData.lifetime = sparkLifetime * (0.7 + Math.random() * 0.6); spark.userData.initialLifetime = spark.userData.lifetime; sparks.push(spark); scene.add(spark); } }
+        function handlePlayerHit(damage) { /* (Identical logic to V10) */ if (!gameRunning) return; playerHealth -= damage; updateHUD(); triggerShake(playerHitShakeIntensity, playerHitShakeDuration); hitOverlayElement.classList.add('hit'); setTimeout(() => { hitOverlayElement.classList.remove('hit'); }, 60); if (playerHealth <= 0) { gameOver(); } }
+
+        function handleEnemyHit(enemy, damage, hitPosition) { // --- Startet nächste Welle ---
+             if (!enemy.userData || enemy.userData.health <= 0) return; // Sicherheitschecks
+
+             enemy.userData.health -= damage;
+
+             const model = enemy.children[0];
+             if(model) { model.traverse(child => { if(child.isMesh && child.material && child.material.emissive) child.material.emissive.setHex(0xffffff); }); }
+             enemy.userData.hitTimer = 0.1;
+             createSparks(hitPosition);
+
+             if (enemy.userData.health <= 0) {
+                 createExplosion(enemy.position, 25 * enemyScaleFactor, 0xff4040);
+                 triggerShake(bombShakeIntensity * 0.8, bombShakeDuration * 0.8);
+                 const index = enemies.indexOf(enemy);
+                 if (index > -1) enemies.splice(index, 1);
+                 scene.remove(enemy);
+
+                 enemiesRemainingInWave--; // Gegner von Welle abgezogen
+                 updateHUD();
+
+                 // Prüfen, ob Welle beendet ist
+                 if (enemiesRemainingInWave <= 0 && gameRunning) {
+                     console.log(`Wave ${currentWave} cleared!`);
+                     showTemporaryMessage(`Wave ${currentWave} Cleared!`, 2500);
+                     // Kurze Pause vor nächster Welle
+                     setTimeout(() => {
+                         startWave(currentWave + 1);
+                     }, 3500); // 3.5 Sekunden Pause
+                 }
+             }
+        }
+
+
+        function handleBuildingHit(instanceId, damage, hitPosition) { /* (Identical logic to V10 - uses rubble color) */ if (!buildingData[instanceId] || !buildingData[instanceId].active) return; buildingData[instanceId].health -= damage; const originalColor = buildingData[instanceId].originalColor; cityBuildings.setColorAt(instanceId, tempColor.setHex(0xffffff)); cityBuildings.instanceColor.needsUpdate = true; setTimeout(() => { if (buildingData[instanceId]) { cityBuildings.setColorAt(instanceId, buildingData[instanceId].active ? originalColor : destroyedBuildingColor); cityBuildings.instanceColor.needsUpdate = true; } }, 100); if(damage === bulletDamage) { createSparks(hitPosition); } if (buildingData[instanceId].health <= 0) { buildingData[instanceId].active = false; createExplosion(hitPosition, buildingData[instanceId].baseScale.y * 0.8, 0xbbbbbb); cityBuildings.setColorAt(instanceId, destroyedBuildingColor); cityBuildings.instanceColor.needsUpdate = true; cityBuildings.getMatrixAt(instanceId, tempMatrix); const pos = tempVector.setFromMatrixPosition(tempMatrix); const quat = tempQuaternion.setFromRotationMatrix(tempMatrix); const scale = buildingData[instanceId].baseScale; const rubbleScale = tempVector2.set(scale.x * 0.95, scale.y * 0.4, scale.z * 0.95); tempMatrix.compose(pos.setY(rubbleScale.y / 2), quat, rubbleScale); cityBuildings.setMatrixAt(instanceId, tempMatrix); cityBuildings.instanceMatrix.needsUpdate = true; updateHUD(); showTemporaryMessage("Gebäude zerstört!", 1800); } }
+        function checkBuildingDamageFromExplosion(explosionCenter, damage, radius = explosionMaxSize * 1.8) { /* (Identical logic to V10) */ if (!cityBuildings) return; const radiusSq = radius * radius; for (let k = 0; k < cityBuildings.count; k++) { if (!buildingData[k] || !buildingData[k].active) continue; const buildingPos = buildingData[k].position; const distSq = explosionCenter.distanceToSquared(tempVector.set(buildingPos.x, buildingPos.y, buildingPos.z)); if (distSq < radiusSq) { const damageScale = 1 - Math.sqrt(distSq) / radius; handleBuildingHit(k, Math.ceil(damage * damageScale), tempVector.set(buildingPos.x, Math.min(explosionCenter.y, buildingPos.y + buildingData[k].baseScale.y/2), buildingPos.z) ); } } }
+        function triggerShake(intensity, duration) { /* (Identical logic to V10) */ if (intensity > shakeIntensity || clock.getElapsedTime() > shakeStartTime + shakeDuration) { shakeIntensity = intensity; shakeDuration = duration; shakeStartTime = clock.getElapsedTime(); } }
+        function showTemporaryMessage(text, duration = 2000) { /* (Identical) */ messageElement.textContent = text; clearTimeout(messageTimeout); messageTimeout = setTimeout(() => { messageElement.textContent = ''; }, duration); }
+        function gameOver() { /* (Identical logic to V10) */ if (!gameRunning) return; gameRunning = false; console.log("GAME OVER"); showTemporaryMessage(`GAME OVER! Wave ${currentWave} reached.`, 15000); Object.keys(moveState).forEach(key => moveState[key] = 0); if (isPointerLocked) { document.exitPointerLock(); } createExplosion(playerAircraft.position, 40, 0xff2020); playerAircraft.visible = false; updateHUD(); /* Update HUD one last time for weapon status etc. */ }
+
+
+        // --- Main Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+            const deltaTime = Math.min(0.05, clock.getDelta());
+
+            if (isPointerLocked && gameRunning) {
+                updatePlayer(deltaTime);
+            }
+
+            // Updates die immer laufen
+            updateBullets(deltaTime);
+            updateEnemyBullets(deltaTime);
+            updateBombs(deltaTime); // Mit Gravity
+            updateEnemies(deltaTime);
+            updateMuzzleFlashes(deltaTime);
+            updateSparks(deltaTime);
+            updateExplosions(deltaTime);
+            updateCamera(deltaTime);
+            updateHUD();
+
+
+            renderer.render(scene, camera);
+        }
+
+        // --- Window Resize ---
+        window.addEventListener('resize', () => { /* (Identical) */ camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+
+        // --- Start Game ---
+        init();
+
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Flugzeug Spiel V11 - Waves, Better Bombs & Visuals</title>
+  <style>
+    body { margin: 0; overflow: hidden; background-color: #303540; font-family: 'Arial', sans-serif; }
+    canvas { display: block; }
+    #info, #crosshair, #hud, #cockpitOverlay, #message { position: absolute; z-index: 100; }
+    #info { top: 10px; width: 100%; text-align: center; color: white; background-color: rgba(0,0,0,0.7); padding: 5px; font-size: 13px; cursor: pointer; }
+    #crosshair { top: 50%; left: 50%; width: 3px; height: 18px; background-color: rgba(80, 255, 80, 0.85); transform: translate(-50%, -50%); z-index: 101; pointer-events: none; display: none; border-radius: 1px; }
+    #crosshair::before { content: ''; position: absolute; top: 50%; left: -7px; width: 17px; height: 3px; background-color: rgba(80, 255, 80, 0.85); transform: translateY(-50%); border-radius: 1px; }
+    #hud { bottom: 10px; left: 10px; color: #50ff50; background-color: rgba(0,0,0,0.75); padding: 10px; border-radius: 6px; font-size: 15px; font-weight: bold; pointer-events: none; display: none; border: 1px solid rgba(80, 255, 80, 0.3); min-width: 280px; }
+    #cockpitOverlay { top: 0; left: 0; width: 100%; height: 100%; border: 20px solid rgba(50, 50, 60, 0.6); border-top-width: 40px; border-bottom-width: 60px; box-sizing: border-box; pointer-events: none; z-index: 99; display: none; }
+    #message { bottom: 140px; width: 100%; text-align: center; color: #ffff90; font-size: 18px; text-shadow: 1px 1px 3px black; pointer-events: none; }
+    #hitOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 0, 0, 0); pointer-events: none; z-index: 102; transition: background-color 0.05s ease-out; display: block; }
+    .hit { background-color: rgba(255, 0, 0, 0.3); }
+  </style>
+</head>
+<body>
+  <div id="info">
+    Klicke hier oder auf das Spiel, um die Steuerung zu aktivieren.<br>
+    Maus: Umschauen/Lenken | W/S: Speed | A/D: Rollen | Leertaste/Shift: Höhe | L-Klick: Schießen | R-Klick: Bombe | V: Sicht wechseln
+  </div>
+  <div id="crosshair"></div>
+  <div id="cockpitOverlay"></div>
+  <div id="hud">
+    HP: <span id="hudPlayerHealth">1000</span> | Wave: <span id="hudWave">1</span> | Speed: <span id="hudSpeed">0</span> km/h | Alt: <span id="hudAltitude">0</span> m<br>
+    Enemies: <span id="hudEnemies">0</span>/<span id="hudEnemiesTotal">0</span> | Buildings: <span id="hudBuildings">0</span>%<br>
+    Gun: <span id="hudGunStatus">Ready</span> | Bomb: <span id="hudBombStatus">Ready</span>
+  </div>
+  <div id="message"></div>
+  <div id="hitOverlay"></div>
+  <canvas id="gameCanvas"></canvas>
+
+  <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.163.0/build/three.module.js" } }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    // --- Core Variables ---
+    let scene, camera, renderer, clock, dirLight;
+    let playerAircraft, aircraftModel, propeller;
+    let isPointerLocked = false;
+    let currentViewMode = 'thirdPerson';
+    let gameRunning = true;
+
+    // --- Game Objects ---
+    let bullets = [], bombs = [], enemies = [], explosions = [], muzzleFlashes = [], sparks = [];
+    let enemyBullets = [];
+    let cityBuildings, buildingData = [];
+    let riverMesh;
+
+    // --- Player State ---
+    let playerHealth = 1000;
+    const playerCollisionRadius = 4.0;
+
+    // --- Wave System ---
+    // Angepasst: mehr Gegner pro Welle
+    let currentWave = 0;
+    let enemiesPerWaveBase = 8; // Startzahl Gegner in Welle 1 erhöht
+    let enemiesPerWaveIncrement = 4; // Steigerung pro Welle
+    let enemiesRemainingInWave = 0;
+    let totalEnemiesInWave = 0;
+
+    // --- Controls & Physics (wie in V10) ---
+    const moveState = { forward: 0, roll: 0, pitch: 0, yaw: 0, up: 0 };
+    let currentSpeed = 20;
+    const maxSpeed = 250; const minSpeed = 15; const acceleration = 75;
+    const rollSpeedFactor = 5.5; const pitchSpeed = 0.0040; const yawSpeed = 0.0040;
+    const climbSpeed = 55; const autoLevelFactor = 0.0; const stallPenaltyFactor = 1.8;
+    const propellerSpeedFactor = 0.08; const gravity = 9.81;
+
+    // --- Game Parameters ---
+    const enemyScaleFactor = 2.0;
+    const enemyHealth = 5;
+    const enemyCollisionRadius = 6 * enemyScaleFactor;
+    const buildingMaxHealth = 10;
+    const bombDamage = 25;
+    const bulletDamage = 1;
+    const bombCollisionRadius = 2.0;
+    const explosionDuration = 0.5;
+    const explosionMaxSize = 35;
+    const citySize = 2500; const buildingGridSize = 55; const buildingInstanceCount = Math.floor(citySize / buildingGridSize) ** 2;
+    let initialBuildingCount = 0; const riverWidth = 180;
+
+    // --- Enemy AI & Weapon Parameters ---
+    const enemyBaseSpeed = 70;
+    const enemyTurnSpeed = 0.5;
+    const enemyAltitudeCorrectionSpeed = 0.12;
+    const enemyMinAltitude = 30; const enemyMaxAltitude = 450;
+    const enemyFireRate = 1.3;
+    const enemyBulletSpeed = 350; const enemyBulletDamage = 1;
+    const enemyShootingAngle = 0.8; const enemyShootingRange = 800;
+    const ENEMY_TYPE_FIGHTER = 'fighter'; const ENEMY_TYPE_BOMBER = 'bomber';
+
+    // --- Waffen Parameter & Effekte ---
+    const bulletSpeed = 600; const bulletCooldown = 0.08; let lastBulletTime = 0;
+    const bombLaunchSpeed = 280; const bombCooldown = 3.0; let lastBombTime = 0;
+    const muzzleFlashDuration = 0.05; const muzzleFlashSize = 1.8;
+    const sparkCount = 12; const sparkLifetime = 0.35; const sparkSpeed = 75;
+
+    // --- HUD & Messaging ---
+    let hudPlayerHealthElement, hudWaveElement, hudSpeedElement, hudAltitudeElement, hudEnemiesElement, hudEnemiesTotalElement,
+        hudBuildingsElement, hudGunStatusElement, hudBombStatusElement, messageElement, cockpitOverlayElement, messageTimeout, hitOverlayElement;
+
+    // --- Effects ---
+    let shakeIntensity = 0; let shakeDuration = 0; let shakeStartTime = 0;
+    const bombShakeIntensity = 0.20; const bombShakeDuration = 0.40;
+    const playerHitShakeIntensity = 0.12; const playerHitShakeDuration = 0.25;
+
+    // --- Helper Objects ---
+    const tempMatrix = new THREE.Matrix4(); const tempVector = new THREE.Vector3();
+    const tempVector2 = new THREE.Vector3(); const tempVector3 = new THREE.Vector3();
+    const tempQuaternion = new THREE.Quaternion(); const tempQuaternion2 = new THREE.Quaternion();
+    const tempColor = new THREE.Color(); const buildingBox = new THREE.Box3();
+    const muzzleFlashMaterial = new THREE.MeshBasicMaterial({ color: 0xfff8c0, side: THREE.DoubleSide, transparent: true, opacity: 1.0, depthWrite: false });
+    const muzzleFlashGeometry = new THREE.PlaneGeometry(muzzleFlashSize, muzzleFlashSize);
+    const sparkMaterial = new THREE.MeshBasicMaterial({ color: 0xfff5a5, emissive: 0xffff00, depthWrite: false, transparent: true });
+    const sparkGeometry = new THREE.SphereGeometry(0.2, 4, 2);
+    const playerBulletMaterial = new THREE.MeshBasicMaterial({ color: 0xf0f090, emissive: 0xffff00 });
+    const playerBulletGeometry = new THREE.CapsuleGeometry(0.12, 1.5, 4, 8);
+    const enemyBulletMaterial = new THREE.MeshBasicMaterial({ color: 0xff6060, emissive: 0xff0000 });
+    const enemyBulletGeometry = new THREE.CapsuleGeometry(0.10, 1.2, 4, 8);
+    const bombGeometry = new THREE.SphereGeometry(1.1, 14, 10);
+    const bombMaterial = new THREE.MeshStandardMaterial({ color: 0x303035, metalness: 0.85, roughness: 0.35, emissive: 0x700000, emissiveIntensity: 0.6 });
+    const destroyedBuildingColor = new THREE.Color(0x605545);
+
+    // --- Weapon Origins (Muzzle flash only) ---
+    const gunMuzzleOffsetLeft = new THREE.Vector3(-0.8, -0.2, -2.6); const gunMuzzleOffsetRight = new THREE.Vector3(0.8, -0.2, -2.6);
+    const bombBayOffset = new THREE.Vector3(0, -0.7, -0.5); let shootLeft = true;
+
+    // --- Camera Positions ---
+    const thirdPersonOffset = new THREE.Vector3(0, 6, 18); const firstPersonOffset = new THREE.Vector3(0, 0.4, -0.8);
+
+    // --- City Color Palettes ---
+    const downtownColors = [0x87CEEB, 0xAFEEEE, 0xB0C4DE, 0xADD8E6, 0xcccccc, 0x88aaff];
+    const suburbColors = [0xFAA460, 0xFFD700, 0xCD5C5C, 0x9ACD32, 0xF4A460, 0x98FB98, 0xFFB6C1];
+
+    function init() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x87CEEB);
+      scene.fog = new THREE.Fog(0x87CEEB, 700, 1900);
+
+      clock = new THREE.Clock();
+      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 3500);
+
+      renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
+
+      setupLighting();
+      createGroundAndRiver();
+      createPlayerAircraft();
+      createCity();
+      setupHUDAndUI();
+      setupEventListeners();
+
+      // Starte die erste Welle
+      startWave(1);
+
+      updateCamera(0);
+      animate();
+    }
+
+    function setupLighting() {
+      const hemiLight = new THREE.HemisphereLight(0xb0c0d5, 0x455055, 2.2);
+      scene.add(hemiLight);
+      dirLight = new THREE.DirectionalLight(0xfff5e8, 4.2);
+      dirLight.position.set(200, 250, 150);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048; dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.near = 50; dirLight.shadow.camera.far = 1000;
+      dirLight.shadow.camera.left = -400; dirLight.shadow.camera.right = 400;
+      dirLight.shadow.camera.top = 400; dirLight.shadow.camera.bottom = -400;
+      dirLight.shadow.bias = -0.004;
+      scene.add(dirLight);
+      scene.add(dirLight.target);
+    }
+    function createGroundAndRiver() {
+      const groundGeometry = new THREE.PlaneGeometry(citySize * 2, citySize * 2);
+      const groundMaterial = new THREE.MeshLambertMaterial({ color: 0xb8d0a0 });
+      const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+      ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = true;
+      scene.add(ground);
+      const riverGeometry = new THREE.PlaneGeometry(riverWidth, citySize * 2);
+      const riverMaterial = new THREE.MeshStandardMaterial({ color: 0x6080cc, roughness: 0.1, metalness: 0.05, transparent: true, opacity: 0.9 });
+      riverMesh = new THREE.Mesh(riverGeometry, riverMaterial);
+      riverMesh.rotation.x = -Math.PI / 2;
+      riverMesh.position.y = 0.1;
+      riverMesh.receiveShadow = true;
+      scene.add(riverMesh);
+    }
+    function createPlayerAircraft() {
+      playerAircraft = new THREE.Group();
+      scene.add(playerAircraft);
+      playerAircraft.position.set(0, 80, 0);
+      createAircraftModelInternal();
+      playerAircraft.add(aircraftModel);
+    }
+    function createAircraftModelInternal() {
+      aircraftModel = new THREE.Group();
+      const bodyMat = new THREE.MeshStandardMaterial({ color: 0xadb0b2, roughness: 0.5, metalness: 0.6 });
+      const wingMat = new THREE.MeshStandardMaterial({ color: 0xc0c2c5, roughness: 0.6, metalness: 0.4 });
+      const tailMat = new THREE.MeshStandardMaterial({ color: 0xdd4040, roughness: 0.6, metalness: 0.4 });
+      const cockpitMat = new THREE.MeshStandardMaterial({ color: 0x6080b0, roughness: 0.1, metalness: 0.5, transparent: true, opacity: 0.5 });
+      const propellerMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.4, metalness: 0.7 });
+      const fuselage = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.45, 5.5, 16), bodyMat);
+      fuselage.rotation.x = Math.PI / 2;
+      fuselage.position.z = 0;
+      fuselage.castShadow = true;
+      aircraftModel.add(fuselage);
+      const wingShape = new THREE.Shape();
+      wingShape.moveTo(0, 0.6); wingShape.lineTo(5.5, 0.4);
+      wingShape.lineTo(5.5, -0.4); wingShape.lineTo(0, -0.6);
+      wingShape.lineTo(0, 0.6);
+      const wingExtrudeSettings = { depth: 0.2, bevelEnabled: false };
+      const wingGeometry = new THREE.ExtrudeGeometry(wingShape, wingExtrudeSettings);
+      const leftWing = new THREE.Mesh(wingGeometry, wingMat);
+      leftWing.rotation.y = Math.PI / 2;
+      leftWing.position.set(-0.15, 0, 1.2);
+      leftWing.castShadow = true;
+      aircraftModel.add(leftWing);
+      const rightWing = new THREE.Mesh(wingGeometry, wingMat);
+      rightWing.rotation.y = -Math.PI / 2;
+      rightWing.position.set(0.15, 0, 1.2);
+      rightWing.castShadow = true;
+      aircraftModel.add(rightWing);
+      const tailPlane = new THREE.Mesh(new THREE.BoxGeometry(4, 0.15, 1.2), wingMat);
+      tailPlane.position.set(0, 0.1, 3.9);
+      tailPlane.castShadow = true;
+      aircraftModel.add(tailPlane);
+      const rudder = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.3, 1.0), tailMat);
+      rudder.position.set(0, 0.7, 4.0);
+      rudder.castShadow = true;
+      aircraftModel.add(rudder);
+      const cockpit = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), cockpitMat);
+      cockpit.scale.z = 1.9;
+      cockpit.rotation.x = -Math.PI / 2;
+      cockpit.position.set(0, 0.4, 1.0);
+      aircraftModel.add(cockpit);
+      propeller = new THREE.Group();
+      const bladeGeometry = new THREE.BoxGeometry(0.1, 1.8, 0.05);
+      const blade1 = new THREE.Mesh(bladeGeometry, propellerMat);
+      const blade2 = new THREE.Mesh(bladeGeometry, propellerMat);
+      blade2.rotation.z = Math.PI / 2;
+      propeller.add(blade1);
+      propeller.add(blade2);
+      propeller.position.set(0, 0, -2.75);
+      propeller.castShadow = false;
+      aircraftModel.add(propeller);
+    }
+
+    // --- Gegner erstellen (Fighter und Bomber) ---
+    function createEnemyAircraftModel(type) {
+      const enemyAircraft = new THREE.Group();
+      const s = enemyScaleFactor;
+      let bodyMat, wingMat, tailMat;
+      let fuselageGeo, wingGeo, tailPlaneGeo, rudderGeo;
+
+      if (type === ENEMY_TYPE_BOMBER) {
+        bodyMat = new THREE.MeshStandardMaterial({ color: 0x556070, roughness: 0.7, metalness: 0.3 });
+        wingMat = new THREE.MeshStandardMaterial({ color: 0x657080, roughness: 0.8, metalness: 0.2 });
+        tailMat = new THREE.MeshStandardMaterial({ color: 0x455060, roughness: 0.8, metalness: 0.2 });
+        fuselageGeo = new THREE.CylinderGeometry(0.8*s, 0.65*s, 6.0*s, 12);
+        const wingShape = new THREE.Shape();
+        wingShape.moveTo(-1*s, 0.7*s); wingShape.lineTo(6.0*s, 0.6*s);
+        wingShape.lineTo(6.0*s, -0.6*s); wingShape.lineTo(-1*s, -0.7*s);
+        wingShape.lineTo(-1*s, 0.7*s);
+        wingGeo = new THREE.ExtrudeGeometry(wingShape, { depth: 0.3*s, bevelEnabled: false });
+        tailPlaneGeo = new THREE.BoxGeometry(5.0*s, 0.2*s, 1.5*s);
+        rudderGeo = new THREE.BoxGeometry(0.25*s, 1.4*s, 1.2*s);
+      } else {
+        bodyMat = new THREE.MeshStandardMaterial({ color: 0xc04040, roughness: 0.6, metalness: 0.5 });
+        wingMat = new THREE.MeshStandardMaterial({ color: 0xd05050, roughness: 0.7, metalness: 0.4 });
+        tailMat = new THREE.MeshStandardMaterial({ color: 0x903030, roughness: 0.7, metalness: 0.4 });
+        fuselageGeo = new THREE.CylinderGeometry(0.55*s, 0.4*s, 5.0*s, 12);
+        const wingShape = new THREE.Shape();
+        wingShape.moveTo(0, 0.5*s); wingShape.lineTo(5.0*s, 0.2*s);
+        wingShape.lineTo(4.5*s, -0.2*s); wingShape.lineTo(0, -0.5*s);
+        wingShape.lineTo(0, 0.5*s);
+        wingGeo = new THREE.ExtrudeGeometry(wingShape, { depth: 0.18*s, bevelEnabled: false });
+        tailPlaneGeo = new THREE.BoxGeometry(3.5*s, 0.12*s, 1.0*s);
+        rudderGeo = new THREE.BoxGeometry(0.18*s, 1.1*s, 0.8*s);
+      }
+
+      const fuselage = new THREE.Mesh(fuselageGeo, bodyMat);
+      fuselage.rotation.x = Math.PI / 2;
+      fuselage.position.z = 0;
+      fuselage.castShadow = true;
+      enemyAircraft.add(fuselage);
+
+      const wingPosX = type === ENEMY_TYPE_BOMBER ? 0 : 0.15*s;
+      const wingPosZ = type === ENEMY_TYPE_BOMBER ? 0.8*s : 1.0*s;
+      const leftWing = new THREE.Mesh(wingGeo, wingMat);
+      leftWing.rotation.y = Math.PI / 2;
+      leftWing.position.set(-wingPosX, 0, wingPosZ);
+      leftWing.castShadow = true;
+      enemyAircraft.add(leftWing);
+      const rightWing = new THREE.Mesh(wingGeo, wingMat);
+      rightWing.rotation.y = -Math.PI / 2;
+      rightWing.position.set(wingPosX, 0, wingPosZ);
+      rightWing.castShadow = true;
+      enemyAircraft.add(rightWing);
+      const tailPosZ = type === ENEMY_TYPE_BOMBER ? 4.0*s : 3.5*s;
+      const tailPlane = new THREE.Mesh(tailPlaneGeo, wingMat);
+      tailPlane.position.set(0, 0.1*s, tailPosZ);
+      tailPlane.castShadow = true;
+      enemyAircraft.add(tailPlane);
+      const rudder = new THREE.Mesh(rudderGeo, tailMat);
+      rudder.position.set(0, 0.6*s, tailPosZ + 0.1*s);
+      rudder.castShadow = true;
+      enemyAircraft.add(rudder);
+      return enemyAircraft;
+    }
+
+    function createCity() {
+      const buildingGeometry = new THREE.BoxGeometry(1, 1, 1);
+      cityBuildings = new THREE.InstancedMesh(buildingGeometry, null, buildingInstanceCount);
+      cityBuildings.castShadow = true; cityBuildings.receiveShadow = true;
+      const downtownMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.65, metalness: 0.25 });
+      const suburbMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8, metalness: 0.1 });
+      buildingData = [];
+      initialBuildingCount = 0;
+      let instanceIdx = 0;
+      const halfCitySize = citySize / 2;
+      const downtownBoundary = citySize * 0.25;
+      for (let x = -halfCitySize; x < halfCitySize; x += buildingGridSize) {
+        for (let z = -halfCitySize; z < halfCitySize; z += buildingGridSize) {
+          if (instanceIdx >= buildingInstanceCount) break;
+          const randomPlacementFactor = 0.6;
+          const jitterX = (Math.random() - 0.5) * buildingGridSize * randomPlacementFactor;
+          const jitterZ = (Math.random() - 0.5) * buildingGridSize * randomPlacementFactor;
+          const posX = x + buildingGridSize / 2 + jitterX;
+          const posZ = z + buildingGridSize / 2 + jitterZ;
+          if (Math.abs(posX) < riverWidth / 2 + buildingGridSize * 0.5) continue;
+          let buildingHeight, buildingWidth, buildingDepth, material, colorHex;
+          const isDowntown = Math.abs(posX) < downtownBoundary && Math.abs(posZ) < downtownBoundary;
+          if (isDowntown && Math.random() < 0.85) {
+            material = downtownMaterial;
+            buildingHeight = 80 + Math.random() * 220;
+            buildingWidth = buildingGridSize * (0.6 + Math.random() * 0.3);
+            buildingDepth = buildingGridSize * (0.6 + Math.random() * 0.3);
+            colorHex = downtownColors[Math.floor(Math.random() * downtownColors.length)];
+          } else if (!isDowntown && Math.random() < 0.6) {
+            material = suburbMaterial;
+            buildingHeight = 8 + Math.random() * 30;
+            buildingWidth = buildingGridSize * (0.4 + Math.random() * 0.4);
+            buildingDepth = buildingGridSize * (0.4 + Math.random() * 0.4);
+            colorHex = suburbColors[Math.floor(Math.random() * suburbColors.length)];
+          } else { continue; }
+          const posY = buildingHeight / 2;
+          tempMatrix.compose( tempVector.set(posX, posY, posZ), tempQuaternion.identity(), tempVector2.set(buildingWidth, buildingHeight, buildingDepth) );
+          cityBuildings.setMatrixAt(instanceIdx, tempMatrix);
+          tempColor.setHex(colorHex);
+          tempColor.offsetHSL( (Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15 );
+          cityBuildings.setColorAt(instanceIdx, tempColor);
+          buildingData[instanceIdx] = { health: buildingMaxHealth, active: true, baseScale: { x: buildingWidth, y: buildingHeight, z: buildingDepth }, position: { x: posX, y: posY, z: posZ }, material: material, originalColor: tempColor.clone() };
+          initialBuildingCount++;
+          instanceIdx++;
+          if (instanceIdx >= buildingInstanceCount) break;
+        }
+      }
+      cityBuildings.count = instanceIdx;
+      cityBuildings.material = suburbMaterial;
+      cityBuildings.instanceMatrix.needsUpdate = true;
+      if (cityBuildings.instanceColor) cityBuildings.instanceColor.needsUpdate = true;
+      scene.add(cityBuildings);
+    }
+
+    // --- Wellen-Management ---
+    function startWave(waveNum) {
+      if (!gameRunning) return;
+      currentWave = waveNum;
+      enemies = [];
+      enemyBullets = [];
+      totalEnemiesInWave = enemiesPerWaveBase + (currentWave - 1) * enemiesPerWaveIncrement;
+      enemiesRemainingInWave = totalEnemiesInWave;
+      console.log(`Starting Wave ${currentWave} with ${totalEnemiesInWave} enemies.`);
+      showTemporaryMessage(`Wave ${currentWave}`, 3000);
+      for (let i = 0; i < totalEnemiesInWave; i++) {
+        const bomberChance = Math.max(0.1, 0.4 - (currentWave * 0.05));
+        const type = Math.random() < bomberChance ? ENEMY_TYPE_BOMBER : ENEMY_TYPE_FIGHTER;
+        spawnEnemy(type);
+      }
+      updateHUD();
+    }
+
+    function spawnEnemy(type = ENEMY_TYPE_FIGHTER) {
+      const enemyAircraftObject = createEnemyAircraftModel(type);
+      const enemyGroup = new THREE.Group();
+      enemyGroup.add(enemyAircraftObject);
+      const angle = Math.random() * Math.PI * 2;
+      const distance = citySize * 1.0 + Math.random() * 600;
+      const startX = playerAircraft.position.x + Math.cos(angle) * distance;
+      const startZ = playerAircraft.position.z + Math.sin(angle) * distance;
+      const startY = enemyMinAltitude + Math.random() * (enemyMaxAltitude - enemyMinAltitude);
+      enemyGroup.position.set(startX, startY, startZ);
+      const directionToPlayerApprox = tempVector.copy(playerAircraft.position).sub(enemyGroup.position).normalize();
+      directionToPlayerApprox.applyAxisAngle(tempVector2.set(0,1,0), (Math.random() - 0.5) * 0.8);
+      const speed = enemyBaseSpeed * (type === ENEMY_TYPE_BOMBER ? 0.85 : 1.0) * (1 + (currentWave-1)*0.05);
+      enemyGroup.userData.baseSpeed = speed;
+      enemyGroup.userData.velocity = directionToPlayerApprox.multiplyScalar(speed);
+      enemyGroup.lookAt(enemyGroup.position.clone().add(enemyGroup.userData.velocity));
+      enemyGroup.userData.health = enemyHealth * (type === ENEMY_TYPE_BOMBER ? 1.5 : 1.0) * (1 + (currentWave-1)*0.1);
+      enemyGroup.userData.hitTimer = 0;
+      enemyGroup.userData.type = type;
+      enemyGroup.userData.lastShotTime = clock.getElapsedTime() + Math.random() * (1 / enemyFireRate);
+      enemyGroup.castShadow = true;
+      enemies.push(enemyGroup);
+      scene.add(enemyGroup);
+    }
+
+    function setupHUDAndUI() {
+      hudPlayerHealthElement = document.getElementById('hudPlayerHealth');
+      hudWaveElement = document.getElementById('hudWave');
+      hudSpeedElement = document.getElementById('hudSpeed'); hudAltitudeElement = document.getElementById('hudAltitude');
+      hudEnemiesElement = document.getElementById('hudEnemies');
+      hudEnemiesTotalElement = document.getElementById('hudEnemiesTotal');
+      hudBuildingsElement = document.getElementById('hudBuildings'); hudGunStatusElement = document.getElementById('hudGunStatus'); hudBombStatusElement = document.getElementById('hudBombStatus');
+      messageElement = document.getElementById('message'); cockpitOverlayElement = document.getElementById('cockpitOverlay');
+      hitOverlayElement = document.getElementById('hitOverlay');
+      updateHUD();
+    }
+
+    function setupEventListeners() {
+      const infoElement = document.getElementById('info');
+      const canvasElement = renderer.domElement;
+      function requestLock() {
+        if (!isPointerLocked && gameRunning) canvasElement.requestPointerLock({ unadjustedMovement: true }).catch(err => console.warn("Pointer lock failed:", err));
+      }
+      infoElement.addEventListener('click', requestLock);
+      canvasElement.addEventListener('click', requestLock);
+      document.addEventListener('pointerlockchange', onPointerLockChange, false);
+      document.addEventListener('mozpointerlockchange', onPointerLockChange, false);
+      document.addEventListener('webkitpointerlockchange', onPointerLockChange, false);
+      document.addEventListener('keydown', onKeyDown);
+      document.addEventListener('keyup', onKeyUp);
+      document.addEventListener('mousemove', onMouseMove);
+      canvasElement.addEventListener('mousedown', onMouseDown);
+      canvasElement.addEventListener('contextmenu', (event) => event.preventDefault());
+    }
+    function onPointerLockChange() {
+      const hud = document.getElementById('hud');
+      const crosshair = document.getElementById('crosshair');
+      const info = document.getElementById('info');
+      if (document.pointerLockElement === renderer.domElement || document.mozPointerLockElement === renderer.domElement || document.webkitPointerLockElement === renderer.domElement) {
+        console.log("Pointer Locked");
+        isPointerLocked = true;
+        info.style.display = 'none';
+        crosshair.style.display = 'block';
+        hud.style.display = 'block';
+        cockpitOverlayElement.style.display = (currentViewMode === 'firstPerson') ? 'block' : 'none';
+        messageElement.textContent = '';
+      } else {
+        console.log("Pointer Unlocked");
+        isPointerLocked = false;
+        info.style.display = 'block';
+        crosshair.style.display = 'none';
+        hud.style.display = 'none';
+        cockpitOverlayElement.style.display = 'none';
+        Object.keys(moveState).forEach(key => moveState[key] = 0);
+      }
+    }
+    function onKeyDown(event) {
+      if (!isPointerLocked || !gameRunning) return;
+      switch (event.code) {
+        case 'KeyW': moveState.forward = 1; break;
+        case 'KeyS': moveState.forward = -1; break;
+        case 'KeyA': moveState.roll = 1; break;
+        case 'KeyD': moveState.roll = -1; break;
+        case 'Space': moveState.up = 1; break;
+        case 'ShiftLeft': moveState.up = -1; break;
+        case 'KeyV': currentViewMode = (currentViewMode === 'thirdPerson') ? 'firstPerson' : 'thirdPerson';
+                        cockpitOverlayElement.style.display = (currentViewMode === 'firstPerson') ? 'block' : 'none';
+                        console.log("View Mode:", currentViewMode); break;
+      }
+    }
+    function onKeyUp(event) {
+      if (!isPointerLocked || !gameRunning) return;
+      switch (event.code) {
+        case 'KeyW': if (moveState.forward > 0) moveState.forward = 0; break;
+        case 'KeyS': if (moveState.forward < 0) moveState.forward = 0; break;
+        case 'KeyA': if (moveState.roll > 0) moveState.roll = 0; break;
+        case 'KeyD': if (moveState.roll < 0) moveState.roll = 0; break;
+        case 'Space': if (moveState.up > 0) moveState.up = 0; break;
+        case 'ShiftLeft': if (moveState.up < 0) moveState.up = 0; break;
+      }
+    }
+    function onMouseMove(event) {
+      if (!isPointerLocked || !gameRunning) return;
+      moveState.yaw = -(event.movementX || 0) * yawSpeed;
+      moveState.pitch = -(event.movementY || 0) * pitchSpeed;
+    }
+    function onMouseDown(event) {
+      if (!isPointerLocked || !gameRunning) return;
+      if (event.button === 0) shoot();
+      else if (event.button === 2) launchBomb();
+    }
+
+    // --- Updates ---
+    function updatePlayer(deltaTime) {
+      if(!gameRunning) return;
+      if (moveState.forward > 0) currentSpeed += acceleration * deltaTime;
+      else if (moveState.forward < 0) currentSpeed -= acceleration * deltaTime * 2.5;
+      else currentSpeed *= (1 - (0.06 + currentSpeed / maxSpeed * 0.20) * deltaTime);
+      currentSpeed = Math.max(minSpeed, Math.min(maxSpeed, currentSpeed));
+      const forwardVector = tempVector.set(0, 0, -1).applyQuaternion(playerAircraft.quaternion);
+      playerAircraft.position.addScaledVector(forwardVector, currentSpeed * deltaTime);
+      let effectiveVerticalSpeed = moveState.up * climbSpeed;
+      let effectiveGravity = gravity;
+      if (currentSpeed < minSpeed * 1.2 && moveState.up <= 0) {
+        effectiveGravity *= stallPenaltyFactor * (1 - currentSpeed / (minSpeed * 1.2));
+        effectiveVerticalSpeed -= effectiveGravity * 0.6;
+      } else {
+        effectiveVerticalSpeed -= effectiveGravity * 0.1;
+      }
+      playerAircraft.position.y += effectiveVerticalSpeed * deltaTime;
+      if (playerAircraft.position.y < 1.5) {
+        playerAircraft.position.y = 1.5;
+        currentSpeed *= 0.80;
+      }
+      playerAircraft.rotateOnWorldAxis(tempVector2.set(0, 1, 0), moveState.yaw);
+      playerAircraft.rotateOnAxis(tempVector2.set(1, 0, 0), moveState.pitch);
+      playerAircraft.rotateOnAxis(tempVector2.set(0, 0, 1), moveState.roll * rollSpeedFactor * deltaTime);
+      moveState.pitch = 0; moveState.yaw = 0;
+      if (propeller) propeller.rotation.z += (currentSpeed + 15) * propellerSpeedFactor * deltaTime;
+      dirLight.target.position.copy(playerAircraft.position);
+    }
+    function updateBullets(deltaTime) {
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const bullet = bullets[i];
+        bullet.position.addScaledVector(bullet.userData.velocity, deltaTime);
+        bullet.userData.lifetime -= deltaTime;
+        let hit = false;
+        for (let j = enemies.length - 1; j >= 0; j--) {
+          const enemy = enemies[j];
+          if (bullet.position.distanceTo(enemy.position) < enemyCollisionRadius) {
+            handleEnemyHit(enemy, bulletDamage, bullet.position);
+            hit = true;
+            break;
+          }
+        }
+        if (hit || bullet.userData.lifetime <= 0 || bullet.position.y < -1) {
+          scene.remove(bullet);
+          bullets.splice(i, 1);
+        } else {
+          bullet.lookAt(tempVector.copy(bullet.position).add(bullet.userData.velocity));
+        }
+      }
+    }
+    function updateBombs(deltaTime) {
+      for (let i = bombs.length - 1; i >= 0; i--) {
+        const bomb = bombs[i];
+        bomb.userData.velocity.y -= gravity * deltaTime * 1.0;
+        bomb.position.addScaledVector(bomb.userData.velocity, deltaTime);
+        bomb.userData.lifetime -= deltaTime;
+        let removed = false;
+        const bombRadiusCheck = bombCollisionRadius;
+        if (bomb.position.y <= bombRadiusCheck) {
+          createExplosion(bomb.position.setY(0), explosionMaxSize * 1.5, 0xff8c00);
+          checkBuildingDamageFromExplosion(bomb.position, bombDamage * 2.5, explosionMaxSize * 2.0);
+          triggerShake(bombShakeIntensity * 1.2, bombShakeDuration * 1.2);
+          scene.remove(bomb);
+          bombs.splice(i, 1);
+          removed = true;
+        } else if (!removed && cityBuildings) {
+          for (let k = 0; k < cityBuildings.count; k++) {
+            if (!buildingData[k] || !buildingData[k].active) continue;
+            cityBuildings.getMatrixAt(k, tempMatrix);
+            const buildingCenter = tempVector.setFromMatrixPosition(tempMatrix);
+            const scale = buildingData[k].baseScale;
+            buildingBox.setFromCenterAndSize(buildingCenter, tempVector2.set(scale.x, scale.y, scale.z));
+            if (buildingBox.containsPoint(bomb.position)) {
+              createExplosion(bomb.position, explosionMaxSize, 0xffa500);
+              handleBuildingHit(k, bombDamage, bomb.position);
+              triggerShake(bombShakeIntensity, bombShakeDuration);
+              scene.remove(bomb);
+              bombs.splice(i, 1);
+              removed = true;
+              break;
+            }
+          }
+        }
+        if (!removed) {
+          for (let j = enemies.length - 1; j >= 0; j--) {
+            const enemy = enemies[j];
+            if (bomb.position.distanceTo(enemy.position) < enemyCollisionRadius + bombCollisionRadius) {
+              createExplosion(bomb.position, explosionMaxSize * 1.2, 0xffa050);
+              handleEnemyHit(enemy, bombDamage * 1.5, bomb.position);
+              triggerShake(bombShakeIntensity, bombShakeDuration);
+              scene.remove(bomb);
+              bombs.splice(i, 1);
+              removed = true;
+              break;
+            }
+          }
+        }
+        if (!removed && bomb.userData.lifetime <= 0) {
+          scene.remove(bomb);
+          bombs.splice(i, 1);
+        }
+      }
+    }
+    function updateEnemies(deltaTime) {
+      const boundary = citySize * 0.95;
+      const now = clock.getElapsedTime();
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const enemy = enemies[i];
+        if (!enemy.userData) continue;
+        const directionToPlayer = tempVector.copy(playerAircraft.position).sub(enemy.position);
+        const distanceToPlayer = directionToPlayer.length();
+        directionToPlayer.normalize();
+        let targetSpeed = enemy.userData.baseSpeed;
+        const desiredVelocity = directionToPlayer.clone().multiplyScalar(targetSpeed);
+        const currentVelocity = enemy.userData.velocity;
+        currentVelocity.lerp(desiredVelocity, enemyTurnSpeed * deltaTime);
+        currentVelocity.normalize().multiplyScalar(targetSpeed);
+        let targetAltitude = THREE.MathUtils.clamp(playerAircraft.position.y, enemyMinAltitude, enemyMaxAltitude);
+        let altitudeError = targetAltitude - enemy.position.y;
+        currentVelocity.y += altitudeError * enemyAltitudeCorrectionSpeed * deltaTime * 50;
+        currentVelocity.y = THREE.MathUtils.clamp(currentVelocity.y, -targetSpeed * 0.4, targetSpeed * 0.4);
+        if (Math.abs(enemy.position.x) > boundary || Math.abs(enemy.position.z) > boundary || enemy.position.y > enemyMaxAltitude * 1.1 || enemy.position.y < enemyMinAltitude * 0.8 ) {
+          const directionToCenter = tempVector2.set(-enemy.position.x, 0, -enemy.position.z).normalize();
+          currentVelocity.lerp(directionToCenter.multiplyScalar(targetSpeed), 1.5 * deltaTime);
+        }
+        enemy.position.addScaledVector(currentVelocity, deltaTime);
+        const lookAtTarget = tempVector3.copy(enemy.position).add(currentVelocity.clone().normalize().multiplyScalar(10));
+        lookAtTarget.y += 0.5;
+        enemy.lookAt(lookAtTarget);
+        if (gameRunning && now > enemy.userData.lastShotTime + (1 / enemyFireRate) && distanceToPlayer < enemyShootingRange) {
+          const enemyForward = tempVector2.set(0, 0, -1).applyQuaternion(enemy.quaternion);
+          const dot = enemyForward.dot(directionToPlayer);
+          if (dot > enemyShootingAngle) {
+            enemyShoot(enemy);
+            enemy.userData.lastShotTime = now;
+          }
+        }
+        if (enemy.userData.hitTimer > 0) {
+          enemy.userData.hitTimer -= deltaTime;
+          if (enemy.userData.hitTimer <= 0) {
+            const model = enemy.children[0];
+            if(model) {
+              model.traverse(child => { if(child.isMesh && child.material && child.material.emissive) child.material.emissive.setHex(0x000000); });
+            }
+          }
+        }
+      }
+    }
+    function enemyShoot(enemy) {
+      const enemyMuzzleOffset = tempVector.set(0, 0, -enemyScaleFactor * 2.5);
+      const worldMuzzlePos = enemyMuzzleOffset.applyMatrix4(enemy.matrixWorld);
+      const direction = tempVector2.copy(playerAircraft.position).sub(worldMuzzlePos).normalize();
+      const bullet = new THREE.Mesh(enemyBulletGeometry, enemyBulletMaterial);
+      bullet.position.copy(worldMuzzlePos);
+      bullet.lookAt(playerAircraft.position);
+      bullet.userData.velocity = direction.multiplyScalar(enemyBulletSpeed);
+      bullet.userData.lifetime = enemyShootingRange / enemyBulletSpeed + 0.5;
+      enemyBullets.push(bullet);
+      scene.add(bullet);
+    }
+    function updateEnemyBullets(deltaTime) {
+      for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const bullet = enemyBullets[i];
+        bullet.position.addScaledVector(bullet.userData.velocity, deltaTime);
+        bullet.userData.lifetime -= deltaTime;
+        let hitPlayer = false;
+        if (gameRunning && bullet.position.distanceTo(playerAircraft.position) < playerCollisionRadius) {
+          handlePlayerHit(enemyBulletDamage);
+          hitPlayer = true;
+        }
+        if (hitPlayer || bullet.userData.lifetime <= 0 || bullet.position.y < -1) {
+          scene.remove(bullet);
+          enemyBullets.splice(i, 1);
+        }
+      }
+    }
+    function updateExplosions(deltaTime) {
+      const now = clock.getElapsedTime();
+      for (let i = explosions.length - 1; i >= 0; i--) {
+        const explosion = explosions[i];
+        const elapsedTime = now - explosion.userData.startTime;
+        const progress = Math.min(elapsedTime / explosion.userData.duration, 1);
+        if (progress >= 1) {
+          scene.remove(explosion);
+          explosions.splice(i, 1);
+        } else {
+          const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+          const currentSize = 0.1 + explosion.userData.maxSize * easeOutQuart;
+          explosion.scale.set(currentSize, currentSize, currentSize);
+          explosion.material.opacity = 0.95 * (1 - progress * progress);
+        }
+      }
+    }
+    function updateMuzzleFlashes(deltaTime) {
+      for (let i = muzzleFlashes.length - 1; i >= 0; i--) {
+        const flash = muzzleFlashes[i];
+        flash.userData.lifetime -= deltaTime;
+        if (flash.userData.lifetime <= 0) {
+          scene.remove(flash);
+          muzzleFlashes.splice(i, 1);
+        } else {
+          const muzzleOffset = flash.userData.isLeft ? gunMuzzleOffsetLeft : gunMuzzleOffsetRight;
+          const worldMuzzlePos = tempVector.copy(muzzleOffset).applyMatrix4(playerAircraft.matrixWorld);
+          flash.position.copy(worldMuzzlePos);
+          flash.quaternion.copy(playerAircraft.quaternion);
+          flash.material.opacity = (flash.userData.lifetime / muzzleFlashDuration);
+        }
+      }
+    }
+    function updateSparks(deltaTime) {
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const spark = sparks[i];
+        spark.position.addScaledVector(spark.userData.velocity, deltaTime);
+        spark.userData.lifetime -= deltaTime;
+        if (spark.userData.lifetime <= 0) {
+          scene.remove(spark);
+          sparks.splice(i, 1);
+        } else {
+          const lifeRatio = spark.userData.lifetime / spark.userData.initialLifetime;
+          spark.material.opacity = lifeRatio * 0.9;
+          const scale = 1.0 * lifeRatio;
+          spark.scale.set(scale, scale, scale);
+        }
+      }
+    }
+    function updateCamera(deltaTime) {
+      aircraftModel.visible = (currentViewMode === 'thirdPerson');
+      let finalCameraPosition = tempVector3.copy(camera.position);
+      let finalLookAtTarget = new THREE.Vector3();
+      if (currentViewMode === 'firstPerson') {
+        const targetCameraPosition = playerAircraft.localToWorld(firstPersonOffset.clone());
+        finalCameraPosition.copy(targetCameraPosition);
+        const lookAtTargetLocal = firstPersonOffset.clone().add(tempVector.set(0, 0, -100));
+        const lookAtTargetWorld = playerAircraft.localToWorld(lookAtTargetLocal);
+        finalLookAtTarget.copy(lookAtTargetWorld);
+      } else {
+        const speedFactor = 1 + (currentSpeed / maxSpeed) * 0.3;
+        const cameraOffset = tempVector.copy(thirdPersonOffset).multiplyScalar(speedFactor);
+        cameraOffset.applyQuaternion(playerAircraft.getWorldQuaternion(tempQuaternion2));
+        const targetCameraPosition = tempVector2.copy(playerAircraft.position).add(cameraOffset);
+        finalCameraPosition.lerp(targetCameraPosition, 12 * deltaTime);
+        const lookAheadDistance = 18 + currentSpeed * 0.12;
+        const lookAtTarget = tempVector2.set(0, 0, -lookAheadDistance);
+        lookAtTarget.applyQuaternion(playerAircraft.getWorldQuaternion(tempQuaternion2)).add(playerAircraft.position);
+        finalLookAtTarget.copy(lookAtTarget);
+      }
+      const now = clock.getElapsedTime();
+      if (now < shakeStartTime + shakeDuration) {
+        const timeRemaining = (shakeStartTime + shakeDuration) - now;
+        const currentIntensity = shakeIntensity * (timeRemaining / shakeDuration);
+        finalCameraPosition.x += (Math.random() - 0.5) * currentIntensity;
+        finalCameraPosition.y += (Math.random() - 0.5) * currentIntensity;
+        finalCameraPosition.z += (Math.random() - 0.5) * currentIntensity;
+      } else {
+        shakeIntensity = 0;
+      }
+      camera.position.copy(finalCameraPosition);
+      camera.lookAt(finalLookAtTarget);
+    }
+    function updateHUD() {
+      if (!hudPlayerHealthElement) return;
+      hudPlayerHealthElement.textContent = Math.max(0, Math.round(playerHealth));
+      if (playerHealth < 250) hudPlayerHealthElement.style.color = '#ff4040';
+      else if (playerHealth < 600) hudPlayerHealthElement.style.color = '#ffff40';
+      else hudPlayerHealthElement.style.color = '#50ff50';
+      hudWaveElement.textContent = currentWave;
+      hudEnemiesElement.textContent = enemiesRemainingInWave;
+      hudEnemiesTotalElement.textContent = totalEnemiesInWave;
+      if (!isPointerLocked) return;
+      hudSpeedElement.textContent = Math.round(currentSpeed * 3.6);
+      hudAltitudeElement.textContent = Math.round(playerAircraft.position.y);
+      let activeBuildings = 0;
+      for(let i = 0; i < cityBuildings.count; i++) { if (buildingData[i] && buildingData[i].active) activeBuildings++; }
+      const buildingsPercent = initialBuildingCount > 0 ? Math.round((activeBuildings / initialBuildingCount) * 100) : 0;
+      hudBuildingsElement.textContent = buildingsPercent;
+      const now = clock.getElapsedTime();
+      const gunCooldownRemaining = Math.max(0, bulletCooldown - (now - lastBulletTime));
+      const bombCooldownRemaining = Math.max(0, bombCooldown - (now - lastBombTime));
+      hudGunStatusElement.textContent = gameRunning ? (gunCooldownRemaining > 0 ? `${gunCooldownRemaining.toFixed(1)}s` : "Ready") : "---";
+      hudBombStatusElement.textContent = gameRunning ? (bombCooldownRemaining > 0 ? `${bombCooldownRemaining.toFixed(1)}s` : "Ready") : "---";
+      hudGunStatusElement.style.color = gunCooldownRemaining > 0 ? "#ffcc00" : "#50ff50";
+      hudBombStatusElement.style.color = bombCooldownRemaining > 0 ? "#ffcc00" : "#50ff50";
+    }
+
+    // --- Game Actions & Effects ---
+    function shoot() {
+      if (!isPointerLocked || !gameRunning) return;
+      const now = clock.getElapsedTime();
+      if (now - lastBulletTime < bulletCooldown) return;
+      lastBulletTime = now;
+      const camDirection = camera.getWorldDirection(tempVector);
+      const startPos = tempVector2.copy(camera.position).addScaledVector(camDirection, 2.0);
+      const bullet = new THREE.Mesh(playerBulletGeometry, playerBulletMaterial);
+      bullet.position.copy(startPos);
+      bullet.quaternion.copy(camera.quaternion);
+      bullet.userData.velocity = camDirection.clone().multiplyScalar(bulletSpeed + currentSpeed);
+      bullet.userData.lifetime = 2.0;
+      bullets.push(bullet);
+      scene.add(bullet);
+      const flash = new THREE.Mesh(muzzleFlashGeometry, muzzleFlashMaterial.clone());
+      flash.userData.lifetime = muzzleFlashDuration;
+      flash.userData.isLeft = shootLeft;
+      muzzleFlashes.push(flash);
+      scene.add(flash);
+      shootLeft = !shootLeft;
+    }
+
+    // Angepasst: Bombenfunktion ähnlich wie Schuss – Startposition und Richtung
+    function launchBomb() {
+      if (!isPointerLocked || !gameRunning) return;
+      const now = clock.getElapsedTime();
+      if (now - lastBombTime < bombCooldown) {
+        showTemporaryMessage(`Bombe bereit in ${(bombCooldown - (now - lastBombTime)).toFixed(1)}s`, 1000);
+        return;
+      }
+      lastBombTime = now;
+      // Verwende die Kamerarichtung, um die Bombe ähnlich wie einen Schuss zu werfen:
+      const camDirection = camera.getWorldDirection(tempVector);
+      const worldBombPos = tempVector2.copy(camera.position).addScaledVector(camDirection, 2.0);
+      const bomb = new THREE.Mesh(bombGeometry, bombMaterial);
+      bomb.position.copy(worldBombPos);
+      bomb.castShadow = true;
+      bomb.userData.velocity = camDirection.clone().multiplyScalar(bombLaunchSpeed + currentSpeed);
+      bomb.userData.lifetime = 5.0;
+      bombs.push(bomb);
+      scene.add(bomb);
+      showTemporaryMessage("Bombe abgeworfen!", 1500);
+    }
+
+    function createExplosion(position, size, color) {
+      const explosionGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+      const explosionMaterial = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.95, depthWrite: false, emissive: color, emissiveIntensity: 0.5 });
+      const explosion = new THREE.Mesh(explosionGeometry, explosionMaterial);
+      explosion.position.copy(position);
+      explosion.userData.startTime = clock.getElapsedTime();
+      explosion.userData.maxSize = size;
+      explosion.userData.duration = explosionDuration * (0.8 + Math.random() * 0.4);
+      explosions.push(explosion);
+      scene.add(explosion);
+    }
+    function createSparks(position) {
+      for (let i = 0; i < sparkCount; i++) {
+        const spark = new THREE.Mesh(sparkGeometry, sparkMaterial.clone());
+        spark.position.copy(position);
+        spark.userData.velocity = new THREE.Vector3( (Math.random() - 0.5), (Math.random() - 0.5), (Math.random() - 0.5) ).normalize().multiplyScalar(sparkSpeed * (0.8 + Math.random() * 0.4));
+        spark.userData.lifetime = sparkLifetime * (0.7 + Math.random() * 0.6);
+        spark.userData.initialLifetime = spark.userData.lifetime;
+        sparks.push(spark);
+        scene.add(spark);
+      }
+    }
+    function handlePlayerHit(damage) {
+      if (!gameRunning) return;
+      playerHealth -= damage;
+      updateHUD();
+      triggerShake(playerHitShakeIntensity, playerHitShakeDuration);
+      hitOverlayElement.classList.add('hit');
+      setTimeout(() => { hitOverlayElement.classList.remove('hit'); }, 60);
+      if (playerHealth <= 0) { gameOver(); }
+    }
+    function handleEnemyHit(enemy, damage, hitPosition) {
+      if (!enemy.userData || enemy.userData.health <= 0) return;
+      enemy.userData.health -= damage;
+      const model = enemy.children[0];
+      if(model) {
+        model.traverse(child => { if(child.isMesh && child.material && child.material.emissive) child.material.emissive.setHex(0xffffff); });
+      }
+      enemy.userData.hitTimer = 0.1;
+      createSparks(hitPosition);
+      if (enemy.userData.health <= 0) {
+        createExplosion(enemy.position, 25 * enemyScaleFactor, 0xff4040);
+        triggerShake(bombShakeIntensity * 0.8, bombShakeDuration * 0.8);
+        const index = enemies.indexOf(enemy);
+        if (index > -1) enemies.splice(index, 1);
+        scene.remove(enemy);
+        enemiesRemainingInWave--;
+        updateHUD();
+        if (enemiesRemainingInWave <= 0 && gameRunning) {
+          console.log(`Wave ${currentWave} cleared!`);
+          showTemporaryMessage(`Wave ${currentWave} Cleared!`, 2500);
+          setTimeout(() => { startWave(currentWave + 1); }, 3500);
+        }
+      }
+    }
+    function handleBuildingHit(instanceId, damage, hitPosition) {
+      if (!buildingData[instanceId] || !buildingData[instanceId].active) return;
+      buildingData[instanceId].health -= damage;
+      const originalColor = buildingData[instanceId].originalColor;
+      cityBuildings.setColorAt(instanceId, tempColor.setHex(0xffffff));
+      cityBuildings.instanceColor.needsUpdate = true;
+      setTimeout(() => {
+        if (buildingData[instanceId]) {
+          cityBuildings.setColorAt(instanceId, buildingData[instanceId].active ? originalColor : destroyedBuildingColor);
+          cityBuildings.instanceColor.needsUpdate = true;
+        }
+      }, 100);
+      if(damage === bulletDamage) { createSparks(hitPosition); }
+      if (buildingData[instanceId].health <= 0) {
+        buildingData[instanceId].active = false;
+        createExplosion(hitPosition, buildingData[instanceId].baseScale.y * 0.8, 0xbbbbbb);
+        cityBuildings.setColorAt(instanceId, destroyedBuildingColor);
+        cityBuildings.instanceColor.needsUpdate = true;
+        cityBuildings.getMatrixAt(instanceId, tempMatrix);
+        const pos = tempVector.setFromMatrixPosition(tempMatrix);
+        const quat = tempQuaternion.setFromRotationMatrix(tempMatrix);
+        const scale = buildingData[instanceId].baseScale;
+        const rubbleScale = tempVector2.set(scale.x * 0.95, scale.y * 0.4, scale.z * 0.95);
+        tempMatrix.compose(pos.setY(rubbleScale.y / 2), quat, rubbleScale);
+        cityBuildings.setMatrixAt(instanceId, tempMatrix);
+        cityBuildings.instanceMatrix.needsUpdate = true;
+        updateHUD();
+        showTemporaryMessage("Gebäude zerstört!", 1800);
+      }
+    }
+    function checkBuildingDamageFromExplosion(explosionCenter, damage, radius = explosionMaxSize * 1.8) {
+      if (!cityBuildings) return;
+      const radiusSq = radius * radius;
+      for (let k = 0; k < cityBuildings.count; k++) {
+        if (!buildingData[k] || !buildingData[k].active) continue;
+        const buildingPos = buildingData[k].position;
+        const distSq = explosionCenter.distanceToSquared(tempVector.set(buildingPos.x, buildingPos.y, buildingPos.z));
+        if (distSq < radiusSq) {
+          const damageScale = 1 - Math.sqrt(distSq) / radius;
+          handleBuildingHit(k, Math.ceil(damage * damageScale), tempVector.set(buildingPos.x, Math.min(explosionCenter.y, buildingPos.y + buildingData[k].baseScale.y/2), buildingPos.z) );
+        }
+      }
+    }
+    function triggerShake(intensity, duration) {
+      if (intensity > shakeIntensity || clock.getElapsedTime() > shakeStartTime + shakeDuration) {
+        shakeIntensity = intensity;
+        shakeDuration = duration;
+        shakeStartTime = clock.getElapsedTime();
+      }
+    }
+    function showTemporaryMessage(text, duration = 2000) {
+      messageElement.textContent = text;
+      clearTimeout(messageTimeout);
+      messageTimeout = setTimeout(() => { messageElement.textContent = ''; }, duration);
+    }
+    function gameOver() {
+      if (!gameRunning) return;
+      gameRunning = false;
+      console.log("GAME OVER");
+      showTemporaryMessage(`GAME OVER! Wave ${currentWave} reached.`, 15000);
+      Object.keys(moveState).forEach(key => moveState[key] = 0);
+      if (isPointerLocked) { document.exitPointerLock(); }
+      createExplosion(playerAircraft.position, 40, 0xff2020);
+      playerAircraft.visible = false;
+      updateHUD();
+    }
+
+    // --- Main Loop ---
+    function animate() {
+      requestAnimationFrame(animate);
+      const deltaTime = Math.min(0.05, clock.getDelta());
+      if (isPointerLocked && gameRunning) {
+        updatePlayer(deltaTime);
+      }
+      updateBullets(deltaTime);
+      updateEnemyBullets(deltaTime);
+      updateBombs(deltaTime);
+      updateEnemies(deltaTime);
+      updateMuzzleFlashes(deltaTime);
+      updateSparks(deltaTime);
+      updateExplosions(deltaTime);
+      updateCamera(deltaTime);
+      updateHUD();
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // --- Spiel starten ---
+    init();
+  </script>
+</body>
+</html> -->

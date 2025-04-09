@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HyperNote V5 - Polished & Focused</title>
+    <style>
+        /* --- Globale Styles & Variables --- */
+        :root {
+            --font-primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+            --font-code: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+
+            --spacing-xs: 4px;
+            --spacing-s: 6px;
+            --spacing-m: 10px;
+            --spacing-l: 14px;
+            --spacing-xl: 20px;
+            --spacing-xxl: 30px;
+
+            --border-radius-s: 3px;
+            --border-radius-m: 5px;
+            --border-radius-l: 8px;
+
+            --transition-speed-fast: 0.15s; /* Slightly slower for smoother feel */
+            --transition-speed-medium: 0.25s;
+            --transition-speed-slow: 0.4s;
+
+            /* Base Theme (Light) */
+            --bg-app: #FFFFFF;
+            --bg-sidebar: #fbfbfb; /* Even lighter sidebar */
+            --bg-main: #FFFFFF;
+            --bg-toolbar: rgba(255, 255, 255, 0.9); /* More opacity */
+            --bg-hover: rgba(55, 53, 47, 0.05); /* Very subtle hover */
+            --bg-active: rgba(46, 170, 220, 0.08);
+            --bg-input: #FFFFFF;
+            --bg-modal: rgba(255, 255, 255, 0.97); /* Less transparent modal */
+            --bg-button-primary: #2eaadc;
+            --bg-button-primary-hover: #1d9bd1;
+            --bg-danger: #e03e3e;
+            --bg-danger-hover: #c83030;
+            --bg-resizer-hover: #e0e0e0;
+            --bg-scrollbar-thumb: rgba(55, 53, 47, 0.2); /* Lighter scroll thumb */
+            --bg-scrollbar-thumb-hover: rgba(55, 53, 47, 0.35);
+            --bg-code-inline: rgba(135, 131, 120, 0.15);
+            --bg-code-block: #f7f7f5; /* Solid color for code block */
+
+            --text-primary: rgb(35, 33, 27); /* Slightly darker text */
+            --text-secondary: rgba(55, 53, 47, 0.6);
+            --text-placeholder: rgba(55, 53, 47, 0.35);
+            --text-button-primary: #FFFFFF;
+            --text-link: #0a84ff;
+            --text-danger: #FFFFFF;
+            --text-code-inline: #d65b5b; /* Adjusted code color */
+            --text-checked: rgba(55, 53, 47, 0.4);
+
+            --border-color-light: rgba(55, 53, 47, 0.1); /* Even lighter border */
+            --border-color-medium: rgba(55, 53, 47, 0.18);
+            --border-color-focus: #2eaadc;
+            --focus-ring-color: rgba(46, 170, 220, 0.35);
+
+            --shadow-color: rgba(55, 53, 47, 0.06);
+            --shadow-context-menu: rgba(15, 15, 15, 0.05) 0px 0px 0px 1px, rgba(15, 15, 15, 0.1) 0px 3px 6px, rgba(15, 15, 15, 0.2) 0px 9px 24px;
+            --shadow-modal: 0 8px 25px rgba(0, 0, 0, 0.1);
+
+            --sidebar-width: 260px;
+            --sidebar-min-width: 200px;
+            --sidebar-max-width: 600px;
+
+            --backdrop-blur: 10px;
+
+            /* Firefox Scrollbar Colors */
+            --scrollbar-color-thumb: var(--bg-scrollbar-thumb);
+            --scrollbar-color-track: transparent;
+        }
+
+        body.dark-theme {
+            /* Dark Theme Variables */
+            --bg-app: #191919;
+            --bg-sidebar: #1e1e1e; /* Slightly different dark shade */
+            --bg-main: #191919;
+            --bg-toolbar: rgba(30, 30, 30, 0.9);
+            --bg-hover: rgba(255, 255, 255, 0.06);
+            --bg-active: rgba(46, 170, 220, 0.1);
+            --bg-input: #2a2a2a;
+            --bg-modal: rgba(35, 35, 35, 0.97);
+            --bg-button-primary: #2eaadc;
+            --bg-button-primary-hover: #3fbafc;
+            --bg-danger: #e5484d;
+            --bg-danger-hover: #f05a5f;
+            --bg-resizer-hover: #3a3a3a;
+            --bg-scrollbar-thumb: rgba(255, 255, 255, 0.18);
+            --bg-scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
+            --bg-code-inline: rgba(171, 167, 158, 0.15);
+             --bg-code-block: #272727;
+
+            --text-primary: rgba(255, 255, 255, 0.92);
+            --text-secondary: rgba(255, 255, 255, 0.5);
+            --text-placeholder: rgba(255, 255, 255, 0.3);
+            --text-button-primary: #FFFFFF;
+            --text-link: #3b9dff;
+            --text-danger: #FFFFFF;
+            --text-code-inline: #ff857a;
+            --text-checked: rgba(255, 255, 255, 0.35);
+
+            --border-color-light: rgba(255, 255, 255, 0.09);
+            --border-color-medium: rgba(255, 255, 255, 0.16);
+            --border-color-focus: #2eaadc;
+            --focus-ring-color: rgba(46, 170, 220, 0.45);
+
+            --shadow-color: rgba(0, 0, 0, 0.3);
+
+            /* Firefox Scrollbar Colors */
+            --scrollbar-color-thumb: var(--bg-scrollbar-thumb);
+            --scrollbar-color-track: transparent;
+        }
+
+        /* --- Reset & Base --- */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 15px; }
+        body {
+            font-family: var(--font-primary);
+            background-color: var(--bg-app);
+            color: var(--text-primary);
+            line-height: 1.55; /* Slightly increased line height */
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            transition: background-color var(--transition-speed-medium), color var(--transition-speed-medium);
+            cursor: default;
+        }
+        body.resizing-sidebar { cursor: col-resize; user-select: none; }
+        button, input, select, textarea { font: inherit; color: inherit; background: none; border: none; }
+        button { cursor: pointer; }
+        input:focus, select:focus, textarea:focus, div[contenteditable]:focus { outline: none; }
+        *:focus-visible { outline: 2px solid transparent; box-shadow: 0 0 0 2px var(--bg-app), 0 0 0 4px var(--focus-ring-color); border-radius: var(--border-radius-s); }
+        ul { list-style: none; }
+        a { color: var(--text-link); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        img { max-width: 100%; height: auto; display: block; border-radius: var(--border-radius-s); margin: var(--spacing-m) 0;}
+        hr { border: none; border-top: 1px solid var(--border-color-medium); margin: 1.5em 0; }
+
+        /* --- Custom Scrollbars --- */
+        /* Webkit */
+        ::-webkit-scrollbar { width: 10px; height: 10px; } /* Slightly wider */
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--bg-scrollbar-thumb); border-radius: 5px; border: 2px solid transparent; background-clip: content-box; } /* Add border for padding effect */
+        ::-webkit-scrollbar-thumb:hover { background: var(--bg-scrollbar-thumb-hover); }
+        /* Firefox */
+        * { scrollbar-width: thin; scrollbar-color: var(--scrollbar-color-thumb) var(--scrollbar-color-track); }
+
+
+        /* --- App Layout --- */
+        .app-container { display: flex; height: 100%; }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-min-width);
+            max-width: var(--sidebar-max-width);
+            background-color: var(--bg-sidebar);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            border-right: 1px solid var(--border-color-light);
+            /* Remove width transition, handle via main content margin */
+            transition: min-width var(--transition-speed-medium) ease, opacity var(--transition-speed-medium) ease;
+            position: relative;
+            flex-shrink: 0;
+            padding-top: var(--spacing-m);
+            overflow: hidden;
+            user-select: none;
+        }
+        .sidebar.collapsed {
+            width: 0;
+            min-width: 0;
+            border-right: none;
+            opacity: 0;
+            pointer-events: none;
+            margin-left: calc(-1 * var(--sidebar-width)); /* Hide completely */
+        }
+
+        .sidebar-header { padding: 0 var(--spacing-l); margin-bottom: var(--spacing-s); flex-shrink: 0; }
+        .sidebar-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-m); }
+        .sidebar-action-btn { padding: var(--spacing-xs) var(--spacing-s); border-radius: var(--border-radius-m); transition: background-color var(--transition-speed-fast); font-size: 1.1em; color: var(--text-secondary); display: flex; align-items: center; gap: var(--spacing-s); }
+        .sidebar-action-btn .btn-text { font-size: 0.85em; font-weight: 500; }
+        .sidebar-action-btn:hover { background-color: var(--bg-hover); color: var(--text-primary); }
+
+         /* Template Button Dropdown */
+         .templates-dropdown { position: relative; }
+         .templates-dropdown-content {
+             display: none;
+             position: absolute;
+             top: 100%;
+             left: 0;
+             background-color: var(--bg-modal);
+             min-width: 180px;
+             box-shadow: var(--shadow-context-menu);
+             border-radius: var(--border-radius-m);
+             z-index: 10;
+             padding: var(--spacing-s) 0;
+             margin-top: var(--spacing-xs);
+         }
+         .templates-dropdown:hover .templates-dropdown-content { display: block; }
+         .template-item {
+             padding: var(--spacing-s) var(--spacing-l);
+             cursor: pointer;
+             font-size: 0.9em;
+             white-space: nowrap;
+         }
+         .template-item:hover { background-color: var(--bg-hover); }
+
+
+        .note-tree-container { flex-grow: 1; overflow-y: auto; overflow-x: hidden; padding: 0 var(--spacing-m); margin-right: 3px; }
+        .tree-node { display: flex; align-items: center; padding: 3px var(--spacing-s); border-radius: var(--border-radius-m); cursor: pointer; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; transition: background-color var(--transition-speed-fast); }
+        .tree-node:hover { background-color: var(--bg-hover); }
+        .tree-node.active { background-color: var(--bg-active); font-weight: 500; }
+        .tree-node.active:hover { background-color: var(--bg-active); }
+        .node-indent { padding-left: calc(var(--level, 0) * var(--spacing-l)); }
+        .node-toggle { width: 16px; height: 16px; margin-right: var(--spacing-xs); display: inline-flex; align-items: center; justify-content: center; color: var(--text-secondary); transition: transform var(--transition-speed-medium), background-color var(--transition-speed-fast); flex-shrink: 0; border-radius: 50%; }
+        .node-toggle:hover { background-color: rgba(0,0,0,0.05); }
+        body.dark-theme .node-toggle:hover { background-color: rgba(255,255,255,0.08); }
+        .node-toggle.collapsed { transform: rotate(-90deg); }
+        .node-toggle svg { width: 10px; height: 10px; fill: currentColor; }
+        .node-icon { margin-right: var(--spacing-s); font-size: 1.1em; width: 1.2em; text-align: center; flex-shrink: 0; }
+        .node-name { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; font-size: 0.95em; }
+
+        .sidebar-footer { padding: var(--spacing-m) var(--spacing-l); border-top: 1px solid var(--border-color-light); flex-shrink: 0; }
+        .settings-btn { width: 100%; text-align: left; padding: var(--spacing-s); border-radius: var(--border-radius-m); transition: background-color var(--transition-speed-fast); display: flex; align-items: center; gap: var(--spacing-s); color: var(--text-secondary);}
+        .settings-btn:hover { background-color: var(--bg-hover); color: var(--text-primary); }
+        .sidebar-resizer { position: absolute; top: 0; right: 0; width: 5px; height: 100%; cursor: col-resize; background-color: transparent; z-index: 50; transition: background-color var(--transition-speed-fast); }
+        .sidebar-resizer:hover, body.resizing-sidebar .sidebar-resizer { background-color: var(--bg-resizer-hover); }
+
+
+        /* --- Main Content --- */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background-color: var(--bg-main);
+            overflow: hidden;
+            position: relative;
+            /* Transition margin-left for smooth sidebar collapse/expand */
+            transition: margin-left var(--transition-speed-medium) ease;
+            margin-left: 0; /* Default */
+        }
+        .sidebar.collapsed + .main-content {
+             margin-left: 0; /* No margin when sidebar is fully gone */
+             /* The width implicitly increases due to flex-grow */
+        }
+
+        /* Sidebar Collapse Toggle - Position relative to main content now */
+        .sidebar-collapse-btn {
+            position: absolute; /* Position relative to main-content */
+            top: 10px;
+            left: -12px; /* Start position (overlaps the potential sidebar area) */
+            width: 24px;
+            height: 24px;
+            background-color: var(--bg-sidebar);
+            border: 1px solid var(--border-color-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            z-index: 100;
+            box-shadow: 0 1px 3px var(--shadow-color);
+            transition: transform var(--transition-speed-medium) ease, background-color var(--transition-speed-fast), opacity var(--transition-speed-medium) ease;
+            opacity: 1; /* Default visible */
+        }
+        .sidebar-collapse-btn:hover { background-color: var(--bg-hover); color: var(--text-primary); transform: scale(1.1); }
+        .sidebar.collapsed + .main-content .sidebar-collapse-btn { /* Style when sidebar IS collapsed */
+             transform: scale(1);
+             /* Keep left: -12px */
+        }
+         .sidebar:not(.collapsed) + .main-content .sidebar-collapse-btn { /* Style when sidebar IS NOT collapsed */
+             /* No specific style needed here, default is fine */
+         }
+
+        .sidebar-collapse-btn svg { width: 12px; height: 12px; transition: transform var(--transition-speed-medium); }
+        .sidebar.collapsed + .main-content .sidebar-collapse-btn svg { transform: rotate(180deg); } /* Point right when collapsed */
+
+
+        .main-content-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary); text-align: center; padding: var(--spacing-xxl); }
+        .main-content-placeholder .icon { font-size: 3em; margin-bottom: var(--spacing-l); }
+        .main-content-placeholder p { max-width: 400px; }
+
+        /* Header Area in Main Content (Breadcrumbs + Actions) */
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-m) var(--spacing-xl);
+            border-bottom: 1px solid var(--border-color-light);
+            flex-shrink: 0;
+        }
+
+        .breadcrumbs {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow-x: auto; /* Scroll if path is too long */
+            flex-grow: 1; /* Take available space */
+            padding-right: var(--spacing-m);
+        }
+        .breadcrumb-item { display: inline; cursor: pointer; padding: var(--spacing-xs); border-radius: var(--border-radius-s); }
+        .breadcrumb-item:hover { background-color: var(--bg-hover); color: var(--text-primary); }
+        .breadcrumb-separator { margin: 0 var(--spacing-xs); opacity: 0.5; }
+
+        .main-actions {
+            display: flex;
+            gap: var(--spacing-s);
+        }
+        .main-action-btn {
+            background: none; border: none; padding: var(--spacing-xs);
+            font-size: 1.1em; color: var(--text-secondary);
+            border-radius: var(--border-radius-m);
+            cursor: pointer; transition: background-color var(--transition-speed-fast), color var(--transition-speed-fast);
+        }
+        .main-action-btn:hover { background-color: var(--bg-hover); color: var(--text-primary); }
+
+
+        /* Editor Toolbar */
+        .editor-toolbar { padding: var(--spacing-s) var(--spacing-xl); border-bottom: 1px solid var(--border-color-light); background-color: var(--bg-toolbar); backdrop-filter: blur(var(--backdrop-blur)); -webkit-backdrop-filter: blur(var(--backdrop-blur)); display: flex; flex-wrap: wrap; gap: var(--spacing-xs); align-items: center; flex-shrink: 0; z-index: 10; position: sticky; top: 0; }
+        .toolbar-button { padding: var(--spacing-xs) var(--spacing-s); border-radius: var(--border-radius-m); transition: background-color var(--transition-speed-fast); font-size: 1em; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; }
+        .toolbar-button:hover { background-color: var(--bg-hover); color: var(--text-primary); }
+        .toolbar-button.active { background-color: var(--bg-active); color: var(--text-primary); }
+        .toolbar-button i, .toolbar-button b, .toolbar-button u { font-style: normal; font-weight: normal; text-decoration: none;}
+        .toolbar-button i { font-style: italic; }
+        .toolbar-button b { font-weight: 600; }
+        .toolbar-button u { text-decoration: underline; }
+        .toolbar-button .code-icon { font-family: var(--font-code); font-size: 0.9em; }
+        .toolbar-separator { width: 1px; height: 16px; background-color: var(--border-color-light); margin: 0 var(--spacing-s); }
+
+
+        /* Editor Area */
+        .editor-area { flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        .editor-content-wrapper { max-width: 800px; margin: 0 auto; padding: var(--spacing-m) var(--spacing-xxl) var(--spacing-xxl); width: 100%; flex-grow: 1; }
+        .note-title-input { font-size: 2.5em; font-weight: 700; background: none; border: none; color: var(--text-primary); padding: var(--spacing-l) 0; margin-bottom: var(--spacing-xs); width: 100%; outline: none; }
+        .note-title-input::placeholder { color: var(--text-placeholder); font-weight: 700; }
+        .note-metadata { font-size: 0.8em; color: var(--text-secondary); margin-bottom: var(--spacing-xl); opacity: 0.8; }
+         .note-metadata span { margin-right: var(--spacing-m); }
+        .note-content-editor { flex-grow: 1; font-size: 1em; line-height: 1.6; color: var(--text-primary); outline: none; padding-bottom: 20vh; white-space: pre-wrap; word-wrap: break-word; }
+        .note-content-editor:empty::before { content: 'Beginne zu schreiben...'; color: var(--text-placeholder); pointer-events: none; display: block; }
+         /* Content Styling */
+         .note-content-editor h1, .note-content-editor h2, .note-content-editor h3 { margin: 1.2em 0 0.4em; line-height: 1.3; font-weight: 600;}
+         .note-content-editor h1 { font-size: 1.8em; } .note-content-editor h2 { font-size: 1.5em; } .note-content-editor h3 { font-size: 1.25em; }
+         .note-content-editor p { margin-bottom: 0.5em; }
+         .note-content-editor blockquote { border-left: 3px solid var(--border-color-medium); margin: 1.5em 0; padding-left: var(--spacing-l); color: var(--text-secondary); }
+         .note-content-editor pre { background-color: var(--bg-code-block); border-radius: var(--border-radius-m); padding: var(--spacing-l); margin: 1em 0; font-family: var(--font-code); font-size: 0.9em; overflow-x: auto; border: 1px solid var(--border-color-light); }
+         .note-content-editor code:not(pre code) { font-family: var(--font-code); background-color: var(--bg-code-inline); padding: 2px 5px; border-radius: var(--border-radius-s); font-size: 0.85em; color: var(--text-code-inline); border: 1px solid var(--border-color-light); }
+         .note-content-editor ul, .note-content-editor ol { margin: 0.5em 0 0.5em var(--spacing-xl); }
+         .note-content-editor li { margin-bottom: 0.2em; position: relative; }
+         /* Checklist Styling */
+         .note-content-editor li.todo-item { list-style: none; margin-left: 0; padding-left: var(--spacing-xl); }
+         .note-content-editor li.todo-item::before { content: ''; position: absolute; left: 0; top: 0.3em; width: 16px; height: 16px; border: 1.5px solid var(--border-color-medium); border-radius: var(--border-radius-s); cursor: pointer; transition: background-color var(--transition-speed-fast), border-color var(--transition-speed-fast); }
+         .note-content-editor li.todo-item.checked::before { background-color: var(--border-color-focus); border-color: var(--border-color-focus); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L1.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z'/%3E%3C/svg%3E"); background-size: 10px 10px; background-repeat: no-repeat; background-position: center; }
+         .note-content-editor li.todo-item.checked { color: var(--text-checked); text-decoration: line-through; }
+
+
+        /* Status Bar */
+        .status-bar { padding: var(--spacing-xs) var(--spacing-xl); border-top: 1px solid var(--border-color-light); font-size: 0.8em; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center; height: 28px; flex-shrink: 0; background-color: var(--bg-main); }
+        .status-message { transition: opacity var(--transition-speed-slow) ease; }
+        .status-message.fade-out { opacity: 0; }
+
+
+        /* --- Settings Modal --- */
+        /* ... (Modal styles largely unchanged from V4, maybe slight adjustments) ... */
+         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity var(--transition-speed-medium) ease, visibility 0s var(--transition-speed-medium); }
+         .modal-overlay.visible { opacity: 1; visibility: visible; transition-delay: 0s; }
+         .modal-content { background-color: var(--bg-modal); backdrop-filter: blur(var(--backdrop-blur)); -webkit-backdrop-filter: blur(var(--backdrop-blur)); border-radius: var(--border-radius-l); padding: var(--spacing-xl); width: 90%; max-width: 550px; /* Slightly wider */ box-shadow: var(--shadow-modal); transform: scale(0.95) translateY(10px); transition: transform var(--transition-speed-medium) cubic-bezier(0.25, 1, 0.5, 1); }
+         .modal-overlay.visible .modal-content { transform: scale(1) translateY(0); }
+         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl); padding-bottom: var(--spacing-m); border-bottom: 1px solid var(--border-color-light); }
+         .modal-title { font-size: 1.2em; font-weight: 600; }
+         .modal-close-btn { font-size: 1.5em; color: var(--text-secondary); padding: var(--spacing-xs); transition: color var(--transition-speed-fast), background-color var(--transition-speed-fast); line-height: 1; border-radius: 50%; }
+         .modal-close-btn:hover { color: var(--text-primary); background-color: var(--bg-hover); }
+         .setting-section { margin-bottom: var(--spacing-xl); }
+         .setting-section h3 { font-size: 1em; font-weight: 600; margin-bottom: var(--spacing-m); color: var(--text-secondary); }
+         .setting-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-m); gap: var(--spacing-m);}
+         .setting-item label { font-size: 0.95em; flex-shrink: 0;}
+         .setting-item .button-group { display: flex; gap: var(--spacing-s); flex-wrap: wrap; justify-content: flex-end;} /* Group for buttons */
+         .setting-storage-warning {
+             background-color: var(--bg-hover);
+             border: 1px solid var(--border-color-medium);
+             padding: var(--spacing-m);
+             border-radius: var(--border-radius-m);
+             font-size: 0.85em;
+             color: var(--text-secondary);
+             margin-top: var(--spacing-s);
+         }
+         .setting-storage-warning strong { color: var(--text-primary); }
+         .setting-storage-warning code { font-size: 0.9em; background-color: var(--bg-code-inline); padding: 1px 3px; border-radius: var(--border-radius-s); }
+         .setting-storage-warning a { color: var(--text-link); }
+
+         /* Toggle Switch Style */
+         .toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+         .toggle-switch input { opacity: 0; width: 0; height: 0; }
+         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color-medium); transition: .2s; border-radius: 22px; }
+         .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .2s; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.1);}
+         input:checked + .slider { background-color: var(--bg-button-primary); }
+         input:checked + .slider:before { transform: translateX(18px); }
+         .action-button { padding: var(--spacing-s) var(--spacing-l); border-radius: var(--border-radius-m); font-size: 0.9em; font-weight: 500; transition: background-color var(--transition-speed-fast), border-color var(--transition-speed-fast); border: 1px solid transparent; }
+         .action-button.primary { background-color: var(--bg-button-primary); color: var(--text-button-primary); }
+         .action-button.primary:hover { background-color: var(--bg-button-primary-hover); }
+         .action-button.secondary { border: 1px solid var(--border-color-medium); color: var(--text-primary); }
+         .action-button.secondary:hover { background-color: var(--bg-hover); }
+         .action-button.danger { background-color: var(--bg-danger); color: var(--text-danger); }
+         .action-button.danger:hover { background-color: var(--bg-danger-hover); }
+
+
+        /* --- Context Menu --- */
+         .context-menu { position: absolute; background-color: var(--bg-modal); border-radius: var(--border-radius-m); box-shadow: var(--shadow-context-menu); padding: var(--spacing-s) 0; z-index: 1001; min-width: 200px; opacity: 0; visibility: hidden; transform: scale(0.95) translateY(-5px); transform-origin: top left; transition: opacity var(--transition-speed-fast) ease, transform var(--transition-speed-fast) ease, visibility 0s var(--transition-speed-fast); }
+         .context-menu.visible { opacity: 1; visibility: visible; transform: scale(1) translateY(0); transition-delay: 0s; }
+         .context-menu-item { padding: var(--spacing-s) var(--spacing-l); cursor: pointer; font-size: 0.9em; display: flex; align-items: center; gap: var(--spacing-s); }
+         .context-menu-item:hover { background-color: var(--bg-hover); }
+         .context-menu-item.danger { color: var(--bg-danger); }
+         .context-menu-item .icon { font-size: 1em; color: var(--text-secondary); width: 1.2em; text-align: center;}
+         .context-menu-item.danger .icon { color: inherit; }
+         .context-menu-separator { height: 1px; background-color: var(--border-color-light); margin: var(--spacing-s) 0; }
+
+         /* --- Focus Mode --- */
+         body.focus-mode .sidebar,
+         body.focus-mode .main-header, /* Hide breadcrumbs header */
+         body.focus-mode .editor-toolbar,
+         body.focus-mode .status-bar,
+         body.focus-mode .sidebar-collapse-btn {
+             display: none;
+         }
+         body.focus-mode .main-content {
+             margin-left: 0 !important; /* Ensure no margin */
+             width: 100vw; /* Take full width */
+             height: 100vh;
+         }
+         body.focus-mode .editor-area {
+             padding-top: 5vh; /* Add padding at the top */
+         }
+          body.focus-mode .editor-content-wrapper {
+             max-width: 720px; /* Slightly narrower for focus */
+         }
+         /* Keep focus toggle visible */
+         body.focus-mode .focus-mode-btn {
+             position: fixed;
+             top: 15px;
+             right: 15px;
+             z-index: 1100; /* Above everything */
+             opacity: 0.5;
+         }
+          body.focus-mode .focus-mode-btn:hover {
+             opacity: 1;
+         }
+
+
+        /* --- Utility --- */
+        .hidden { display: none !important; }
+
+    </style>
+</head>
+<body class=""> <!-- dark-theme added by JS -->
+
+    <div class="app-container">
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-resizer" id="sidebar-resizer"></div>
+            <div class="sidebar-header">
+                <div class="sidebar-actions">
+                     <!-- Template Button -->
+                     <div class="templates-dropdown">
+                         <button class="sidebar-action-btn" title="Neu aus Vorlage...">
+                             <span class="icon">✨</span> <span class="btn-text">Neu</span> <span style="font-size: 0.7em;">▼</span>
+                         </button>
+                         <div class="templates-dropdown-content" id="templates-list">
+                              <div class="template-item" data-template-key="blank">📄 Leere Notiz</div>
+                              <div class="template-item" data-template-key="meeting">🧑‍💻 Meeting Notizen</div>
+                              <div class="template-item" data-template-key="todo">☑️ Tägliche Aufgaben</div>
+                              <!-- Add more templates here -->
+                         </div>
+                     </div>
+                     <button class="sidebar-action-btn" id="new-folder-btn" title="Neuer Ordner erstellen">
+                         <span class="icon">📁</span> <span class="btn-text">Ordner</span>
+                     </button>
+                </div>
+            </div>
+            <div class="note-tree-container" id="note-tree-container"></div>
+            <div class="sidebar-footer">
+                <button class="settings-btn" id="settings-btn">
+                    <span class="icon">⚙️</span> <span class="btn-text">Einstellungen</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content">
+             <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" title="Sidebar ein-/ausklappen">
+                 <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+             </button>
+
+             <div class="main-content-placeholder" id="main-content-placeholder">
+                 <!-- Placeholder content updated by JS -->
+             </div>
+
+            <div id="editor-container" class="hidden">
+                 <!-- Main Header (Breadcrumbs + Actions) -->
+                 <div class="main-header">
+                     <div class="breadcrumbs" id="breadcrumbs"></div>
+                     <div class="main-actions">
+                          <button class="main-action-btn focus-mode-btn" id="focus-mode-btn" title="Fokus-Modus">👁️</button>
+                          <!-- Add more actions like share, etc. here later -->
+                     </div>
+                 </div>
+
+                 <!-- Editor Toolbar -->
+                <div class="editor-toolbar" id="editor-toolbar">
+                     <button class="toolbar-button" data-command="bold" title="Fett (Ctrl+B)"><b>B</b></button>
+                     <button class="toolbar-button" data-command="italic" title="Kursiv (Ctrl+I)"><i>I</i></button>
+                     <button class="toolbar-button" data-command="underline" title="Unterstrichen (Ctrl+U)"><u>U</u></button>
+                     <button class="toolbar-button" id="inline-code-btn" title="Inline Code"><span class="code-icon"></></span></button>
+                     <div class="toolbar-separator"></div>
+                     <button class="toolbar-button" data-command="formatBlock" data-value="h1" title="Überschrift 1">H1</button>
+                     <button class="toolbar-button" data-command="formatBlock" data-value="h2" title="Überschrift 2">H2</button>
+                     <button class="toolbar-button" data-command="formatBlock" data-value="h3" title="Überschrift 3">H3</button>
+                     <button class="toolbar-button" data-command="formatBlock" data-value="p" title="Absatz">¶</button>
+                     <div class="toolbar-separator"></div>
+                     <button class="toolbar-button" data-command="insertUnorderedList" title="Aufzählung">•</button>
+                     <button class="toolbar-button" data-command="insertOrderedList" title="Nummerierte Liste">1.</button>
+                     <button class="toolbar-button" id="checklist-btn" title="Checkliste / Todo">☑</button>
+                     <button class="toolbar-button" data-command="formatBlock" data-value="blockquote" title="Blockzitat">”</button>
+                     <button class="toolbar-button" data-command="formatBlock" data-value="pre" title="Code-Block">{;}</button>
+                     <button class="toolbar-button" data-command="insertHorizontalRule" title="Trennlinie">—</button>
+                     <div class="toolbar-separator"></div>
+                     <button class="toolbar-button" id="insert-image-btn" title="Bild einfügen">🖼️</button>
+                     <div class="toolbar-separator"></div>
+                     <button class="toolbar-button" data-command="removeFormat" title="Formatierung entfernen">🧹</button>
+                </div>
+
+                <!-- Editor Area -->
+                <div class="editor-area" id="editor-area">
+                     <div class="editor-content-wrapper">
+                        <input type="text" id="note-title-input" class="note-title-input" placeholder="Unbenannt">
+                        <div class="note-metadata hidden" id="note-metadata">
+                             <span>Erstellt: <span id="creation-time">...</span></span>
+                            <span>Zuletzt geändert: <span id="last-modified-time">...</span></span>
+                        </div>
+                        <div id="note-content-editor" class="note-content-editor" contenteditable="true" spellcheck="false"></div>
+                     </div>
+                </div>
+
+                 <!-- Status Bar -->
+                 <div class="status-bar" id="status-bar">
+                     <span id="status-message" class="status-message">Bereit.</span>
+                     <span id="word-count">0 Wörter</span>
+                 </div>
+             </div>
+        </main>
+
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal-content">
+             <div class="modal-header">
+                 <h2 class="modal-title">Einstellungen</h2>
+                 <button class="modal-close-btn" id="modal-close-btn" title="Schließen">×</button>
+             </div>
+             <div class="modal-body">
+                 <div class="setting-section">
+                     <h3>Erscheinungsbild</h3>
+                     <div class="setting-item">
+                         <label for="theme-toggle-input">Dunkles Design</label>
+                         <label class="toggle-switch">
+                             <input type="checkbox" id="theme-toggle-input">
+                             <span class="slider"></span>
+                         </label>
+                     </div>
+                 </div>
+                  <div class="setting-section">
+                      <h3>Datenverwaltung</h3>
+                      <div class="setting-item">
+                          <label>Exportieren (Alle)</label>
+                           <div class="button-group">
+                               <button class="action-button secondary" id="export-json-btn-modal">JSON</button>
+                               <button class="action-button secondary" id="export-md-btn-modal">Markdown</button>
+                               <button class="action-button secondary" id="export-txt-btn-modal">Text</button>
+                           </div>
+                      </div>
+                      <div class="setting-item">
+                          <label>Importieren (JSON)</label>
+                           <div class="button-group">
+                               <button class="action-button secondary" id="import-btn-modal">Datei auswählen...</button>
+                           </div>
+                      </div>
+                       <div class="setting-storage-warning">
+                           <strong>Speicherhinweis:</strong> Diese App nutzt <code>LocalStorage</code>, der auf <strong>ca. 5-10 MB</strong> begrenzt ist. Große Bilder füllen diesen Speicher schnell! Daten gehen verloren, wenn der Browser-Cache geleert wird. Für mehr Speicher und Sicherheit ist eine App mit Backend oder <code>IndexedDB</code> nötig. <a href="https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API" target="_blank" rel="noopener">Mehr über IndexedDB</a>.
+                       </div>
+                      <div class="setting-item" style="margin-top: var(--spacing-l);">
+                          <label style="color: var(--bg-danger);">Alle Daten löschen</label>
+                           <div class="button-group">
+                               <button class="action-button danger" id="delete-all-data-btn">🚨 ALLES LÖSCHEN</button>
+                           </div>
+                      </div>
+                  </div>
+             </div>
+        </div>
+    </div>
+
+    <!-- Context Menu Structure -->
+    <div class="context-menu" id="context-menu">
+          <!-- Actions updated by JS based on item type -->
+    </div>
+
+    <!-- Hidden file inputs -->
+    <input type="file" id="import-file-input" accept=".json" class="hidden">
+    <input type="file" id="image-file-input" accept="image/*" class="hidden">
+
+    <script>
+        // --- DOM Elemente ---
+        const body = document.body;
+        const sidebar = document.getElementById('sidebar');
+        const sidebarResizer = document.getElementById('sidebar-resizer');
+        const sidebarCollapseBtn = document.getElementById('sidebar-collapse-btn');
+        const noteTreeContainer = document.getElementById('note-tree-container');
+        const templatesList = document.getElementById('templates-list');
+        // const newNoteBtn = document.getElementById('new-note-btn'); // Replaced by template button
+        const newFolderBtn = document.getElementById('new-folder-btn');
+        const settingsBtn = document.getElementById('settings-btn');
+        const mainContent = document.getElementById('main-content');
+        const mainContentPlaceholder = document.getElementById('main-content-placeholder');
+        const editorContainer = document.getElementById('editor-container');
+        const mainHeader = document.querySelector('.main-header'); // Header containing breadcrumbs/actions
+        const breadcrumbsContainer = document.getElementById('breadcrumbs');
+        const focusModeBtn = document.getElementById('focus-mode-btn');
+        const editorToolbar = document.getElementById('editor-toolbar');
+        const noteTitleInput = document.getElementById('note-title-input');
+        const noteMetadata = document.getElementById('note-metadata');
+        const creationTime = document.getElementById('creation-time');
+        const lastModifiedTime = document.getElementById('last-modified-time');
+        const noteContentEditor = document.getElementById('note-content-editor');
+        const statusBar = document.getElementById('status-bar');
+        const statusMessage = document.getElementById('status-message');
+        const wordCount = document.getElementById('word-count');
+        const insertImageBtn = document.getElementById('insert-image-btn');
+        const imageFileInput = document.getElementById('image-file-input');
+        const inlineCodeBtn = document.getElementById('inline-code-btn');
+        const checklistBtn = document.getElementById('checklist-btn');
+
+        // Settings Modal Elements
+        const settingsModal = document.getElementById('settings-modal');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        const themeToggleInput = document.getElementById('theme-toggle-input');
+        const exportJsonBtn = document.getElementById('export-json-btn-modal');
+        const exportMdBtn = document.getElementById('export-md-btn-modal');
+        const exportTxtBtn = document.getElementById('export-txt-btn-modal');
+        const importBtnModal = document.getElementById('import-btn-modal');
+        const importFileInput = document.getElementById('import-file-input');
+        const deleteAllDataBtn = document.getElementById('delete-all-data-btn');
+
+        // Context Menu Elements
+        const contextMenu = document.getElementById('context-menu');
+        let contextTargetItemId = null;
+
+        // --- App State ---
+        // Item: { id, type: 'note'|'folder', name, icon?, content?, children?, parentId, lastModified, creationTime }
+        let data = [];
+        let settings = {
+            theme: 'light',
+            sidebarCollapsed: false,
+            sidebarWidth: 260,
+            currentItemId: null,
+            expandedFolders: [],
+            isFocusMode: false
+        };
+        let saveTimeout = null;
+        let statusTimeout = null;
+        let isResizingSidebar = false;
+
+        // --- Konstanten ---
+        const DATA_STORAGE_KEY = 'hypernote_data_v5'; // Updated key
+        const SETTINGS_STORAGE_KEY = 'hypernote_settings_v5'; // Updated key
+        const SAVE_DEBOUNCE_DELAY = 800;
+        const SIDEBAR_MIN_WIDTH = 200;
+        const SIDEBAR_MAX_WIDTH = 600;
+
+        // --- Note Templates ---
+        const TEMPLATES = {
+            blank: { name: 'Neue Notiz', content: '', icon: '📄' },
+            meeting: {
+                name: 'Meeting Notizen', icon: '🧑‍💻',
+                content: `<h1>Meeting: [Thema]</h1><p><strong>Datum:</strong> ${new Date().toLocaleDateString('de-DE')}<br><strong>Teilnehmer:</strong> </p><h2>Agenda</h2><ul><li>Punkt 1</li><li>Punkt 2</li></ul><h2>Notizen</h2><p></p><h2>Aktionen</h2><ul><li class="todo-item">Aktion 1</li></ul>`
+            },
+            todo: {
+                name: 'Tägliche Aufgaben', icon: '☑️',
+                content: `<h1>Tägliche Aufgaben - ${new Date().toLocaleDateString('de-DE')}</h1><ul><li class="todo-item">Aufgabe 1</li><li class="todo-item">Aufgabe 2</li><li class="todo-item">Aufgabe 3</li></ul>`
+            }
+        };
+
+
+        // --- Helper Functions ---
+        const generateId = () => Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+        function findItem(id, tree = data) { /* ... (same as V4) ... */
+             for (const item of tree) {
+                  if (item.id === id) return item;
+                  if (item.type === 'folder' && item.children) {
+                      const found = findItem(id, item.children);
+                      if (found) return found;
+                  }
+              }
+              return null;
+         }
+        function findItemPath(id, tree = data, path = []) { /* ... (same as V4) ... */
+            for (const item of tree) {
+                 const currentItem = findItem(item.id); // Get full item for name/icon
+                 if (!currentItem) continue;
+                 const currentPathSegment = { id: item.id, name: currentItem.name, icon: currentItem.icon };
+                 const newPath = [...path, currentPathSegment];
+                 if (item.id === id) return newPath;
+                 if (item.type === 'folder' && item.children) {
+                     const foundPath = findItemPath(id, item.children, newPath);
+                     if (foundPath) return foundPath;
+                 }
+             }
+             return null;
+         }
+        function deleteItemRecursive(id, tree) { /* ... (same as V4) ... */
+            for (let i = tree.length - 1; i >= 0; i--) {
+                 const item = tree[i];
+                 if (item.id === id) { tree.splice(i, 1); return true; }
+                 if (item.type === 'folder' && item.children) {
+                     if (deleteItemRecursive(id, item.children)) { return true; }
+                 }
+             }
+             return false;
+         }
+        function getParentItem(itemId, tree = data) { /* ... (same as V4) ... */
+             for (const item of tree) {
+                 if (item.type === 'folder' && item.children) {
+                     if (item.children.some(child => child.id === itemId)) { return item; }
+                     const foundParent = getParentItem(itemId, item.children);
+                     if (foundParent) return foundParent;
+                 }
+             }
+             return null;
+         }
+        function getSiblings(itemId) { /* ... (same as V4) ... */
+             const parent = getParentItem(itemId);
+             if (parent && parent.children) { return parent.children; }
+             if (!parent) { return data; } // Root items
+             return [];
+         }
+        function parseIdTimestamp(id) { /* Extracts timestamp from our generated ID */
+            try {
+                const timestampPart = id.substring(0, id.indexOf('.')).substring(0, 8); // Heuristic for Date.now().toString(36) part
+                const timestamp = parseInt(timestampPart, 36);
+                return new Date(timestamp);
+            } catch (e) {
+                console.warn("Could not parse creation date from ID:", id);
+                return null; // Return null if parsing fails
+            }
+        }
+
+        // --- Local Storage & Saving ---
+        function loadDataAndSettings() { /* ... (same loading logic as V4, include isFocusMode) ... */
+            // Load Settings
+            const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+            if (storedSettings) {
+                try {
+                    const loaded = JSON.parse(storedSettings);
+                    settings.theme = ['light', 'dark'].includes(loaded.theme) ? loaded.theme : 'light';
+                    settings.sidebarCollapsed = typeof loaded.sidebarCollapsed === 'boolean' ? loaded.sidebarCollapsed : false;
+                    settings.sidebarWidth = typeof loaded.sidebarWidth === 'number' && loaded.sidebarWidth >= SIDEBAR_MIN_WIDTH && loaded.sidebarWidth <= SIDEBAR_MAX_WIDTH ? loaded.sidebarWidth : 260;
+                    settings.currentItemId = loaded.currentItemId || null;
+                    settings.expandedFolders = Array.isArray(loaded.expandedFolders) ? loaded.expandedFolders : [];
+                    settings.isFocusMode = typeof loaded.isFocusMode === 'boolean' ? loaded.isFocusMode : false; // Load focus mode
+                    console.log("Settings loaded:", settings);
+                } catch (e) { console.error("Error parsing settings", e); /* Keep defaults */ }
+            }
+             // Load Data
+            const storedData = localStorage.getItem(DATA_STORAGE_KEY);
+             if (storedData) {
+                 try {
+                     data = JSON.parse(storedData);
+                      const restoreTypes = (items) => { /* Include creationTime */
+                          items.forEach(item => {
+                              item.lastModified = item.lastModified ? new Date(item.lastModified) : new Date();
+                              item.creationTime = item.creationTime ? new Date(item.creationTime) : (parseIdTimestamp(item.id) || item.lastModified); // Use parsed ID or fallback
+                              item.icon = item.icon || null;
+                              if (item.type === 'folder') {
+                                  item.children = item.children || [];
+                                  if (item.children.length > 0) restoreTypes(item.children);
+                              }
+                          });
+                      };
+                     restoreTypes(data);
+                     console.log("Data loaded:", data.length, "root items");
+                 } catch (e) { console.error("Error parsing data", e); data = []; }
+             } else { /* ... (Create welcome note as in V4, include creationTime) ... */
+                if (data.length === 0) {
+                     const welcomeId = generateId();
+                     const now = new Date();
+                     data.push({
+                         id: welcomeId, type: 'note', name: 'Willkommen bei HyperNote V5!', icon: '👋',
+                         content: `<h1>Willkommen!</h1><p>Neu in V5:</p><ul><li>✨ Notiz-Vorlagen</li><li>🎯 Fokus-Modus</li><li>ექსport als Markdown/Text</li><li>...und weitere Verbesserungen!</li></ul><p><b>Hinweis:</b> Local Storage ist begrenzt!</p>`,
+                         parentId: null, lastModified: now, creationTime: now
+                     });
+                     settings.currentItemId = welcomeId;
+                     saveData();
+                     saveSettings();
+                 }
+             }
+         }
+        function saveData() { /* ... (same as V4) ... */
+             try {
+                 if (!Array.isArray(data)) throw new Error("Data is not an array");
+                 localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(data));
+                 console.log("Data saved.");
+             } catch (error) { console.error("Error saving data:", error); showStatus("Fehler beim Speichern!", 3000, true); if (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED') { alert("💾 SPEICHERLIMIT ERREICHT! 💾\n\nExportiere Daten & lösche alte Inhalte."); } }
+         }
+        function saveSettings() { /* ... (same as V4) ... */
+            try { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); console.log("Settings saved."); }
+            catch (error) { console.error("Error saving settings:", error); }
+        }
+        function debouncedSave() { /* ... (same as V4) ... */
+             clearTimeout(saveTimeout);
+             saveTimeout = setTimeout(() => {
+                 const item = findItem(settings.currentItemId);
+                 if (item && item.type === 'note') {
+                      item.lastModified = new Date();
+                      updateLastModifiedDisplay(item.lastModified);
+                 }
+                 saveData();
+             }, SAVE_DEBOUNCE_DELAY);
+         }
+
+        // --- UI Rendering & Updates ---
+        function renderApp() { /* Apply focus mode here too */
+            applySettingsUI();
+            renderNoteTree();
+            displayCurrentItem();
+        }
+        function applySettingsUI() { /* Apply focus mode, update sidebar collapse btn */
+            // Theme
+            if (settings.theme === 'dark') body.classList.add('dark-theme');
+            else body.classList.remove('dark-theme');
+            themeToggleInput.checked = settings.theme === 'dark';
+
+            // Sidebar Collapsed State & Width
+            if (settings.sidebarCollapsed) {
+                 sidebar.classList.add('collapsed');
+                 sidebar.style.width = '0px'; // Ensure width is 0 when collapsed
+                 // mainContent.style.marginLeft = '0'; // Handled by flexbox mostly
+            } else {
+                 sidebar.classList.remove('collapsed');
+                 sidebar.style.width = `${settings.sidebarWidth}px`;
+                 // mainContent.style.marginLeft = '0'; // Default margin
+            }
+
+            // Sidebar Collapse Button Icon (always based on collapsed state)
+             const collapseIconSVG = sidebarCollapseBtn.querySelector('svg');
+             if (collapseIconSVG) {
+                 collapseIconSVG.style.transform = settings.sidebarCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+             }
+
+
+            // Focus Mode
+            if (settings.isFocusMode) body.classList.add('focus-mode');
+            else body.classList.remove('focus-mode');
+            focusModeBtn.textContent = settings.isFocusMode ? '👁️‍🗨️' : '👁️'; // Update icon
+            focusModeBtn.title = settings.isFocusMode ? 'Fokus verlassen' : 'Fokus-Modus';
+        }
+        function renderNoteTree(items = data, parentElement = noteTreeContainer, level = 0) { /* ... (same rendering logic as V4) ... */
+            if (level === 0) { parentElement.innerHTML = ''; }
+             items.sort((a, b) => { if (a.type !== b.type) { return a.type === 'folder' ? -1 : 1; } return (a.name || '').localeCompare(b.name || ''); });
+             items.forEach(item => {
+                 const nodeElement = document.createElement('div');
+                 nodeElement.classList.add('tree-node', `node-type-${item.type}`, 'node-indent');
+                 nodeElement.style.setProperty('--level', level);
+                 nodeElement.dataset.id = item.id;
+                 if (item.id === settings.currentItemId) nodeElement.classList.add('active');
+                 // Toggle Arrow
+                 if (item.type === 'folder') {
+                     const toggle = document.createElement('span');
+                     toggle.classList.add('node-toggle');
+                     const isExpanded = settings.expandedFolders.includes(item.id);
+                     if (!isExpanded) toggle.classList.add('collapsed');
+                     toggle.innerHTML = `<svg viewBox="0 0 16 16"><path d="M11.646 6.146a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L8 9.793l3.646-3.647z" fill="currentColor"/></svg>`;
+                     toggle.addEventListener('click', (e) => { e.stopPropagation(); toggleFolder(item.id); });
+                     nodeElement.appendChild(toggle);
+                 } else { const indentSpacer = document.createElement('span'); indentSpacer.style.display = 'inline-block'; indentSpacer.style.width = '16px'; nodeElement.appendChild(indentSpacer); }
+                 // Icon
+                 const icon = document.createElement('span');
+                 icon.classList.add('node-icon');
+                 icon.textContent = item.icon || (item.type === 'folder' ? '📁' : '📄');
+                 nodeElement.appendChild(icon);
+                 // Name
+                 const nameSpan = document.createElement('span');
+                 nameSpan.classList.add('node-name');
+                 nameSpan.textContent = item.name || (item.type === 'folder' ? 'Unbenannter Ordner' : 'Unbenannte Notiz');
+                 nodeElement.appendChild(nameSpan);
+                 // Event Listeners
+                 nodeElement.addEventListener('click', () => { selectItem(item.id); });
+                 nodeElement.addEventListener('contextmenu', (e) => { e.preventDefault(); showContextMenu(e.clientX, e.clientY, item.id); });
+                 parentElement.appendChild(nodeElement);
+                 // Render children
+                 if (item.type === 'folder' && settings.expandedFolders.includes(item.id) && item.children?.length > 0) {
+                     renderNoteTree(item.children, parentElement, level + 1);
+                 }
+             });
+         }
+        function displayCurrentItem() { /* ... (update metadata display logic) ... */
+             hideContextMenu();
+             const item = findItem(settings.currentItemId);
+
+             renderBreadcrumbs(settings.currentItemId); // Always render breadcrumbs
+
+             if (item && item.type === 'note') {
+                 mainContentPlaceholder.classList.add('hidden');
+                 editorContainer.classList.remove('hidden');
+                 noteTitleInput.value = item.name;
+                 noteContentEditor.innerHTML = item.content || '';
+                 // Update Metadata Display
+                 updateMetadataDisplay(item);
+                 noteMetadata.classList.remove('hidden');
+                 updateWordCount();
+                 setupChecklistListeners(); // Attach listeners after loading content
+             } else {
+                 editorContainer.classList.add('hidden');
+                 mainContentPlaceholder.classList.remove('hidden');
+                 noteMetadata.classList.add('hidden');
+                 if (item && item.type === 'folder') { /* ... (show folder info) ... */
+                     mainContentPlaceholder.querySelector('h2').textContent = `${item.icon || '📁'} ${item.name || 'Unbenannter Ordner'}`;
+                     mainContentPlaceholder.querySelector('p').textContent = `Wähle eine Notiz oder erstelle eine neue in diesem Ordner.`;
+                     mainContentPlaceholder.querySelector('.icon').textContent = '';
+                 } else { /* ... (show welcome placeholder) ... */
+                     mainContentPlaceholder.querySelector('h2').textContent = `Willkommen!`;
+                     mainContentPlaceholder.querySelector('p').textContent = `Wähle eine Notiz aus oder erstelle eine neue.`;
+                     mainContentPlaceholder.querySelector('.icon').textContent = '👋';
+                 }
+                 noteTitleInput.value = '';
+                 noteContentEditor.innerHTML = '';
+                 updateWordCount();
+             }
+             // Update active state in sidebar
+              document.querySelectorAll('.tree-node.active').forEach(el => el.classList.remove('active'));
+              const activeNode = noteTreeContainer.querySelector(`.tree-node[data-id="${settings.currentItemId}"]`);
+              if (activeNode) activeNode.classList.add('active');
+         }
+        function renderBreadcrumbs(itemId) { /* ... (same as V4) ... */
+             breadcrumbsContainer.innerHTML = '';
+             if (!itemId) return;
+             const path = findItemPath(itemId);
+             if (!path || path.length === 0) return;
+             path.forEach((segment, index) => {
+                 const crumb = document.createElement('span');
+                 crumb.classList.add('breadcrumb-item');
+                 crumb.dataset.id = segment.id;
+                 const iconSpan = document.createElement('span');
+                 iconSpan.textContent = segment.icon ? `${segment.icon} ` : '';
+                 crumb.appendChild(iconSpan);
+                 crumb.appendChild(document.createTextNode(segment.name || 'Unbenannt'));
+                 crumb.addEventListener('click', () => selectItem(segment.id));
+                 breadcrumbsContainer.appendChild(crumb);
+                 if (index < path.length - 1) { const separator = document.createElement('span'); separator.classList.add('breadcrumb-separator'); separator.textContent = '/'; breadcrumbsContainer.appendChild(separator); }
+             });
+         }
+        function formatDateTime(date) { /* Helper for consistent date format */
+             if (date instanceof Date && !isNaN(date)) {
+                  return date.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr';
+              }
+              return 'Unbekannt';
+        }
+        function updateMetadataDisplay(item) { /* Show Creation and Mod Time */
+            creationTime.textContent = formatDateTime(item.creationTime);
+            lastModifiedTime.textContent = formatDateTime(item.lastModified);
+        }
+        function updateLastModifiedDisplay(date) { /* Only update the mod time display */
+            lastModifiedTime.textContent = formatDateTime(date);
+        }
+        function updateWordCount() { /* ... (same as V4) ... */
+            const text = noteContentEditor.innerText || ''; const count = text.trim().split(/\s+/).filter(Boolean).length; wordCount.textContent = `${count} Wörter`;
+        }
+        function showStatus(message, duration = 1500, isError = false) { /* Shorter default duration */
+            clearTimeout(statusTimeout); statusMessage.textContent = message; statusMessage.style.color = isError ? 'var(--bg-danger)' : 'var(--text-secondary)'; statusMessage.classList.remove('fade-out');
+            if (duration) { statusTimeout = setTimeout(() => { statusMessage.classList.add('fade-out'); }, duration); }
+        }
+
+        // --- Sidebar Resizing ---
+        function startResizeSidebar(e) { /* ... (same as V4) ... */
+             e.preventDefault(); isResizingSidebar = true; body.classList.add('resizing-sidebar'); const startX = e.clientX; const startWidth = sidebar.offsetWidth;
+             const doResize = (moveEvent) => { if (!isResizingSidebar) return; const currentX = moveEvent.clientX; const diffX = currentX - startX; let newWidth = startWidth + diffX; newWidth = Math.max(SIDEBAR_MIN_WIDTH, Math.min(newWidth, SIDEBAR_MAX_WIDTH)); sidebar.style.width = `${newWidth}px`; /* No need to update button pos here, CSS handles it */ };
+             const stopResize = () => { if (isResizingSidebar) { isResizingSidebar = false; body.classList.remove('resizing-sidebar'); document.removeEventListener('mousemove', doResize); document.removeEventListener('mouseup', stopResize); settings.sidebarWidth = sidebar.offsetWidth; saveSettings(); console.log("Sidebar resized to:", settings.sidebarWidth); } };
+             document.addEventListener('mousemove', doResize); document.addEventListener('mouseup', stopResize);
+         }
+
+        // --- Item Actions ---
+        function createNewItem(type, templateKey = null) { /* Added templateKey parameter */
+            const parentId = getTargetParentId();
+            const parentFolder = parentId ? findItem(parentId) : null;
+            const now = new Date();
+            let name = type === 'folder' ? 'Neuer Ordner' : 'Neue Notiz';
+            let content = type === 'note' ? '' : undefined; // Undefined for folders
+            let icon = null;
+
+            // Apply template if provided
+             if (type === 'note' && templateKey && TEMPLATES[templateKey]) {
+                 const template = TEMPLATES[templateKey];
+                 name = template.name || name;
+                 content = template.content || content;
+                 icon = template.icon || icon;
+             }
+
+            const newItem = {
+                id: generateId(), type: type, name: name, icon: icon,
+                content: content, parentId: parentId, lastModified: now, creationTime: now
+            };
+            if (type === 'folder') newItem.children = [];
+
+            // Add to tree
+            if (parentFolder && parentFolder.type === 'folder') {
+                if (!parentFolder.children) parentFolder.children = [];
+                parentFolder.children.push(newItem);
+                if (!settings.expandedFolders.includes(parentId)) settings.expandedFolders.push(parentId);
+            } else { data.push(newItem); }
+
+            settings.currentItemId = newItem.id;
+            sortAndSave();
+            renderNoteTree();
+            displayCurrentItem();
+            if (type === 'note') noteTitleInput.focus();
+            showStatus(`${type === 'folder' ? 'Ordner' : 'Notiz'} erstellt.`, 1500);
+        }
+        function getTargetParentId() { /* ... (same as V4) ... */ const selectedItem = findItem(settings.currentItemId); if (!selectedItem) return null; if (selectedItem.type === 'folder') return selectedItem.id; return selectedItem.parentId; }
+        function selectItem(id) { /* ... (same as V4) ... */ if (settings.currentItemId !== id) { settings.currentItemId = id; saveSettings(); displayCurrentItem(); } }
+        function toggleFolder(folderId) { /* ... (same as V4) ... */ const index = settings.expandedFolders.indexOf(folderId); if (index > -1) settings.expandedFolders.splice(index, 1); else settings.expandedFolders.push(folderId); saveSettings(); renderNoteTree(); }
+        function handleItemRename(itemId) { /* ... (same as V4, ensure breadcrumb update) ... */
+            const item = findItem(itemId); if (!item) return; const currentName = item.name || (item.type === 'folder' ? 'Unbenannter Ordner' : 'Unbenannte Notiz'); const newName = prompt(`Neuen Namen für "${currentName}" eingeben:`, currentName);
+            if (newName !== null && newName.trim() !== '') {
+                item.name = newName.trim(); item.lastModified = new Date(); sortAndSave(); renderNoteTree(); renderBreadcrumbs(settings.currentItemId);
+                if (item.id === settings.currentItemId && item.type === 'note') noteTitleInput.value = item.name; showStatus("Umbenannt.", 1500);
+            } else if (newName !== null) { alert("Name darf nicht leer sein."); }
+        }
+        function handleItemDelete(itemId) { /* ... (same as V4) ... */
+             const item = findItem(itemId); if (!item) return; const itemType = item.type === 'folder' ? 'Ordner' : 'Notiz'; const itemName = item.name || (item.type === 'folder' ? 'Unbenannter Ordner' : 'Unbenannte Notiz');
+             let confirmationMessage = `🚨 Wirklich ${itemType} "${itemName}" löschen?`; if (item.type === 'folder' && item.children?.length > 0) { confirmationMessage += `\n\nAchtung: Enthält ${item.children.length} weitere Element(e)!`; } confirmationMessage += "\n\nDies kann nicht rückgängig gemacht werden.";
+             if (!confirm(confirmationMessage)) return;
+             const deleted = deleteItemRecursive(itemId, data);
+             if (deleted) {
+                 if (settings.currentItemId === itemId) {
+                      const parent = getParentItem(itemId); const itemSiblings = getSiblings(itemId).filter(s => s.id !== itemId);
+                      if (itemSiblings.length > 0) settings.currentItemId = itemSiblings[0].id;
+                      else if (parent) settings.currentItemId = parent.id;
+                      else settings.currentItemId = data.length > 0 ? data[0].id : null;
+                      saveSettings();
+                 }
+                 const expandedIndex = settings.expandedFolders.indexOf(itemId); if (expandedIndex > -1) settings.expandedFolders.splice(expandedIndex, 1);
+                 sortAndSave(); renderNoteTree(); displayCurrentItem(); showStatus(`${itemType} gelöscht.`, 2000);
+             } else { showStatus("Löschen fehlgeschlagen.", 2000, true); }
+         }
+        function handleSetIcon(itemId) { /* ... (same as V4, ensure breadcrumb update) ... */
+             const item = findItem(itemId); if (!item) return; const currentIcon = item.icon || ''; const newIcon = prompt(`Icon (Emoji) für "${item.name}" eingeben (leer=Standard):`, currentIcon);
+             if (newIcon !== null) {
+                 if (newIcon === '' || (newIcon.length > 0 && !/\s/.test(newIcon))) { // Basic validation
+                     item.icon = newIcon === '' ? null : newIcon; item.lastModified = new Date(); sortAndSave(); renderNoteTree(); renderBreadcrumbs(settings.currentItemId); showStatus("Icon geändert.", 1500);
+                 } else { alert("Ungültiges Icon."); }
+             }
+         }
+        function handleMoveToTop(itemId) { /* ... (same as V4) ... */
+            const parent = getParentItem(itemId); let targetArray; let itemIndex;
+             if (parent && parent.children) { targetArray = parent.children; itemIndex = targetArray.findIndex(i => i.id === itemId); }
+             else { targetArray = data; itemIndex = targetArray.findIndex(i => i.id === itemId); }
+             if (itemIndex === -1) { showStatus("Element nicht gefunden.", 2000, true); return; }
+             if (itemIndex > 0) { const [itemToMove] = targetArray.splice(itemIndex, 1); targetArray.unshift(itemToMove); itemToMove.lastModified = new Date(); sortAndSave(); renderNoteTree(); showStatus("An den Anfang verschoben.", 1500); }
+             else { showStatus("Ist bereits oben.", 1000); }
+         }
+        function sortAndSave() { /* Sorting logic still primarily in renderNoteTree */ saveData(); }
+
+        // --- Editor & Formatting ---
+        function handleToolbarCommand(event) { /* ... (same as V4) ... */ const button = event.target.closest('.toolbar-button'); if (!button || !settings.currentItemId) return; const command = button.dataset.command; const value = button.dataset.value || null; if (command) { noteContentEditor.focus(); document.execCommand(command, false, value); handleContentChange(); } }
+        function handleInlineCode() { /* ... (improved toggle logic) ... */
+             noteContentEditor.focus();
+             const command = 'insertHTML';
+             // Check if already code - VERY basic check, only looks at immediate parent
+             const parentNode = window.getSelection().getRangeAt(0).commonAncestorContainer.parentNode;
+             if (parentNode && parentNode.nodeName === 'CODE') {
+                  document.execCommand('removeFormat', false, 'code'); // Try to remove only code
+             } else {
+                 const selectedText = window.getSelection().toString();
+                 if (selectedText) {
+                      // Basic wrap - might break structure inside selection
+                     document.execCommand(command, false, '<code>' + selectedText.replace(/</g, "<").replace(/>/g, ">") + '</code>');
+                 } else {
+                     // Insert empty code tags if nothing selected? Or maybe toggle style?
+                     // For simplicity, only wrap selection for now.
+                 }
+             }
+             handleContentChange();
+         }
+        function handleChecklist() { /* ... (same logic as V4) ... */
+             noteContentEditor.focus(); document.execCommand('insertUnorderedList');
+             setTimeout(() => { const selection = window.getSelection(); if (!selection.rangeCount) return; const range = selection.getRangeAt(0); let container = range.commonAncestorContainer;
+                 while (container && container !== noteContentEditor && container.nodeName !== 'UL' && container.nodeName !== 'OL') { container = container.parentNode; }
+                 if (container && (container.nodeName === 'UL' || container.nodeName === 'OL')) {
+                     container.querySelectorAll('li').forEach(li => { if (selection.containsNode(li, true) || range.intersectsNode(li)) { if (!li.classList.contains('todo-item')) li.classList.add('todo-item'); } });
+                     handleContentChange(); setupChecklistListeners();
+                 }
+             }, 50);
+         }
+        function setupChecklistListeners() { /* ... (same as V4) ... */ noteContentEditor.querySelectorAll('li.todo-item').forEach(item => { item.removeEventListener('click', toggleChecklistItem); item.addEventListener('click', toggleChecklistItem); }); }
+        function toggleChecklistItem(event) { /* ... (same as V4) ... */ const listItem = event.currentTarget; const clickX = event.clientX; const rect = listItem.getBoundingClientRect(); if (clickX < rect.left + 30) { event.preventDefault(); listItem.classList.toggle('checked'); handleContentChange(); } }
+        function handleTitleChange() { /* ... (same as V4, ensures breadcrumb update) ... */
+             if (!settings.currentItemId) return; const item = findItem(settings.currentItemId);
+             if (item && item.type === 'note') {
+                 const newName = noteTitleInput.value;
+                 if (item.name !== newName) {
+                     item.name = newName; item.lastModified = new Date();
+                     const nodeNameElement = noteTreeContainer.querySelector(`.tree-node[data-id="${item.id}"] .node-name`);
+                     if (nodeNameElement) nodeNameElement.textContent = item.name || 'Unbenannte Notiz';
+                     renderBreadcrumbs(item.id); // Update breadcrumb too
+                     debouncedSave();
+                 }
+             }
+         }
+        function handleContentChange() { /* ... (same as V4) ... */ if (!settings.currentItemId) return; const item = findItem(settings.currentItemId); if (item && item.type === 'note') { const newContent = noteContentEditor.innerHTML; if(item.content !== newContent) { item.content = newContent; debouncedSave(); } updateWordCount(); setupChecklistListeners(); } }
+        function handleImageInsert() { /* ... (same as V4) ... */ imageFileInput.click(); }
+        function processImageFile(event) { /* ... (same as V4) ... */ const file = event.target.files[0]; if (!file || !file.type.startsWith('image/')) { showStatus("Bitte Bilddatei wählen.", 2000, true); return; } if (file.size > 2 * 1024 * 1024) { if (!confirm(`WARNUNG: Bild > 2MB.\nKann App verlangsamen & Speicher füllen.\nFortfahren?`)) { imageFileInput.value = null; return; } } const reader = new FileReader(); reader.onload = (e) => { const base64Image = e.target.result; noteContentEditor.focus(); document.execCommand('insertHTML', false, `<p><img src="${base64Image}" alt="Eingefügtes Bild"></p><p><br></p>`); handleContentChange(); showStatus("Bild eingefügt.", 1500); }; reader.onerror = () => { showStatus("Fehler beim Lesen.", 3000, true); }; reader.readAsDataURL(file); imageFileInput.value = null; }
+
+        // --- Focus Mode ---
+        function toggleFocusMode() {
+            settings.isFocusMode = !settings.isFocusMode;
+            saveSettings();
+            applySettingsUI(); // Applies the class to body and updates button
+        }
+
+        // --- Export Functions ---
+        function exportData(format) {
+            if (data.length === 0) { alert("Keine Daten zum Exportieren."); return; }
+            let content = '';
+            let fileExt = '.txt';
+            let mimeType = 'text/plain';
+
+            if (format === 'json') {
+                 content = JSON.stringify(data, null, 2);
+                 fileExt = '.json';
+                 mimeType = 'application/json';
+            } else {
+                // Flatten the tree structure for MD/TXT export
+                const notesToExport = [];
+                 const flattenTree = (items, level = 0) => {
+                     items.sort((a, b) => { if (a.type !== b.type) { return a.type === 'folder' ? -1 : 1; } return (a.name || '').localeCompare(b.name || ''); });
+                     items.forEach(item => {
+                         if (item.type === 'note') {
+                             notesToExport.push({ ...item, level });
+                         } else if (item.type === 'folder' && item.children?.length > 0) {
+                             // Optionally add folder marker
+                              notesToExport.push({ type: 'folder', name: item.name, level });
+                             flattenTree(item.children, level + 1);
+                         }
+                     });
+                 };
+                flattenTree(data);
+
+                if (format === 'md') {
+                    fileExt = '.md';
+                    mimeType = 'text/markdown';
+                    content = notesToExport.map(item => {
+                        if (item.type === 'folder') {
+                             return `${'#'.repeat(item.level + 1)} Ordner: ${item.name || 'Unbenannt'}\n\n`; // Folder heading
+                        }
+                        // Basic HTML to Markdown conversion
+                        let mdContent = convertHtmlToMarkdown(item.content || '');
+                        return `# ${item.name || 'Unbenannte Notiz'}\n\n${mdContent}\n\n---\n\n`;
+                    }).join('');
+                } else { // txt
+                    fileExt = '.txt';
+                    mimeType = 'text/plain';
+                     content = notesToExport.map(item => {
+                          if (item.type === 'folder') {
+                              return `${''.padStart(item.level * 2, ' ')}Ordner: ${item.name || 'Unbenannt'}\n\n`;
+                          }
+                          // Get plain text from HTML
+                          const tempDiv = document.createElement('div');
+                          tempDiv.innerHTML = item.content || '';
+                          return `Titel: ${item.name || 'Unbenannte Notiz'}\n\n${tempDiv.innerText}\n\n--------------------\n\n`;
+                     }).join('');
+                }
+            }
+
+             try {
+                 const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
+                 const url = URL.createObjectURL(blob);
+                 const a = document.createElement('a');
+                 const timestamp = new Date().toISOString().slice(0, 10);
+                 a.href = url;
+                 a.download = `hypernote_v5_export_${timestamp}${fileExt}`;
+                 a.click();
+                 URL.revokeObjectURL(url);
+                 showStatus(`Daten als ${format.toUpperCase()} exportiert.`, 2000);
+             } catch (error) {
+                 console.error(`Export to ${format} failed:`, error);
+                 alert(`Export als ${format.toUpperCase()} fehlgeschlagen!`);
+                 showStatus(`Export als ${format.toUpperCase()} fehlgeschlagen!`, 3000, true);
+             }
+        }
+
+        function convertHtmlToMarkdown(html) {
+             // Basic, naive conversion - libraries like Turndown are much better
+             let md = html;
+             // Block elements first
+             md = md.replace(/<h1>(.*?)<\/h1>/gi, '# $1\n\n');
+             md = md.replace(/<h2>(.*?)<\/h2>/gi, '## $1\n\n');
+             md = md.replace(/<h3>(.*?)<\/h3>/gi, '### $1\n\n');
+             md = md.replace(/<p>(.*?)<\/p>/gi, '$1\n\n');
+             md = md.replace(/<pre><code>(.*?)<\/code><\/pre>/gis, '```\n$1\n```\n\n'); // Handle multiline code blocks
+             md = md.replace(/<pre>(.*?)<\/pre>/gis, '```\n$1\n```\n\n');
+             md = md.replace(/<blockquote>(.*?)<\/blockquote>/gi, '> $1\n\n');
+             md = md.replace(/<hr>/gi, '---\n\n');
+              // Lists (tricky part) - very basic conversion
+              md = md.replace(/<li>(.*?)<\/li>/gi, '* $1\n'); // Convert all LIs to markdown list items
+              md = md.replace(/<\/(ul|ol)>/gi, '\n'); // Add newline after list
+              md = md.replace(/<(ul|ol)>/gi, ''); // Remove opening list tags
+              // Handle checklists - requires checking class attribute
+              const tempDiv = document.createElement('div'); tempDiv.innerHTML = html;
+              tempDiv.querySelectorAll('li.todo-item').forEach(li => {
+                  const text = li.innerText;
+                  const checked = li.classList.contains('checked');
+                  const mdCheckbox = checked ? '[x]' : '[ ]';
+                  // Attempt to replace the original LI content in the 'md' string
+                  // This is fragile!
+                   const liRegex = new RegExp(`\\* ${escapeRegExp(text)}\\n`);
+                   md = md.replace(liRegex, `* ${mdCheckbox} ${text}\n`);
+              });
+
+
+             // Inline elements
+             md = md.replace(/<strong>(.*?)<\/strong>/gi, '**$1**');
+             md = md.replace(/<b>(.*?)<\/b>/gi, '**$1**');
+             md = md.replace(/<em>(.*?)<\/em>/gi, '*$1*');
+             md = md.replace(/<i>(.*?)<\/i>/gi, '*$1*');
+             md = md.replace(/<u>(.*?)<\/u>/gi, '$1'); // Markdown doesn't have underline typically
+             md = md.replace(/<code>(.*?)<\/code>/gi, '`$1`');
+              md = md.replace(/<img.*?alt="(.*?)".*?>/gi, '![ $1 ](Bild)\n'); // Placeholder for images
+             md = md.replace(/<a href="(.*?)">(.*?)<\/a>/gi, '[$2]($1)');
+
+             // Clean up extra newlines and HTML tags
+             md = md.replace(/<br\s*\/?>/gi, '\n');
+             md = md.replace(/ /g, ' ');
+             md = md.replace(/<[^>]*>/g, ''); // Remove remaining tags
+             md = md.replace(/\n{3,}/g, '\n\n'); // Collapse multiple newlines
+             return md.trim();
+        }
+        function escapeRegExp(string) { return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+
+        // --- Settings Modal Logic ---
+        function showSettingsModal() { /* ... (same as V4) ... */ settingsModal.classList.add('visible'); }
+        function hideSettingsModal() { /* ... (same as V4) ... */ settingsModal.classList.remove('visible'); }
+        function handleThemeToggle() { /* ... (same as V4) ... */ settings.theme = themeToggleInput.checked ? 'dark' : 'light'; applySettingsUI(); saveSettings(); }
+        function triggerImport() { /* ... (same as V4) ... */ if (!confirm("⚠️ IMPORT WARNUNG ⚠️\n\nErsetzt ALLE aktuellen Daten!\nBackup vorhanden?\n\nFortfahren?")) return; importFileInput.click(); }
+        function handleImportFile(event) { /* ... (same as V4, include creationTime restore) ... */
+             const file = event.target.files[0]; if (!file) return; const reader = new FileReader();
+             reader.onload = (e) => {
+                 try {
+                     const importedData = JSON.parse(e.target.result); if (!Array.isArray(importedData)) throw new Error("JSON ist kein Array.");
+                     data = importedData;
+                     const restoreTypes = (items) => { /* ... include creationTime ... */
+                         items.forEach(item => { item.lastModified = item.lastModified ? new Date(item.lastModified) : new Date(); item.creationTime = item.creationTime ? new Date(item.creationTime) : (parseIdTimestamp(item.id) || item.lastModified); item.icon = item.icon || null; if (item.type === 'folder') { item.children = item.children || []; if (item.children.length > 0) restoreTypes(item.children); } }); };
+                     restoreTypes(data);
+                     settings.currentItemId = data.length > 0 ? data[0].id : null; settings.expandedFolders = []; saveData(); saveSettings(); renderApp(); showStatus("Daten importiert.", 3000); alert("Daten importiert.");
+                 } catch (error) { console.error("Import Error:", error); alert(`Import fehlgeschlagen: ${error.message}`); showStatus("Import fehlgeschlagen!", 4000, true); }
+                 finally { importFileInput.value = null; }
+             };
+             reader.onerror = () => { alert("Fehler beim Lesen der Datei."); showStatus("Fehler beim Lesen!", 3000, true); }; reader.readAsText(file);
+         }
+        function deleteAllData() { /* ... (same as V4) ... */ if (confirm("🚨 ABSOLUT SICHER? 🚨\n\nALLES wird DAUERHAFT gelöscht!\nBackup?\n\nWirklich löschen?")) { data = []; settings.currentItemId = null; settings.expandedFolders = []; settings.sidebarWidth = 260; settings.isFocusMode = false; localStorage.removeItem(DATA_STORAGE_KEY); localStorage.removeItem(SETTINGS_STORAGE_KEY); renderApp(); showStatus("Alle Daten gelöscht.", 3000); alert("Alle Daten gelöscht."); hideSettingsModal(); } }
+
+        // --- Context Menu ---
+        function showContextMenu(x, y, itemId) { /* Add options dynamically */
+            contextTargetItemId = itemId;
+            const item = findItem(itemId);
+            if (!item) return;
+
+            contextMenu.innerHTML = ''; // Clear previous items
+
+            // Common actions
+             contextMenu.innerHTML += `<div class="context-menu-item" data-action="set-icon"><span class="icon">🎭</span> Icon ändern</div>`;
+             contextMenu.innerHTML += `<div class="context-menu-item" data-action="rename"><span class="icon">✏️</span> Umbenennen</div>`;
+             contextMenu.innerHTML += `<div class="context-menu-item" data-action="move-top"><span class="icon">⬆️</span> An den Anfang</div>`;
+             // Maybe Duplicate?
+             // contextMenu.innerHTML += `<div class="context-menu-item" data-action="duplicate"><span class="icon">📄</span> Duplizieren</div>`;
+             contextMenu.innerHTML += `<div class="context-menu-separator"></div>`;
+             contextMenu.innerHTML += `<div class="context-menu-item danger" data-action="delete"><span class="icon">🗑️</span> Löschen</div>`;
+
+            // Positioning
+             const menuWidth = contextMenu.offsetWidth || 200; const menuHeight = contextMenu.offsetHeight || 150;
+             const adjustedX = (x + menuWidth > window.innerWidth) ? window.innerWidth - menuWidth - 5 : x;
+             const adjustedY = (y + menuHeight > window.innerHeight) ? window.innerHeight - menuHeight - 5 : y;
+             contextMenu.style.left = `${adjustedX}px`; contextMenu.style.top = `${adjustedY}px`;
+             contextMenu.classList.add('visible');
+             document.addEventListener('click', hideContextMenuOnClickOutside, { capture: true, once: true });
+             document.addEventListener('contextmenu', hideContextMenuOnClickOutside, { capture: true, once: true });
+         }
+        function hideContextMenu() { /* ... (same as V4) ... */ contextMenu.classList.remove('visible'); contextTargetItemId = null; document.removeEventListener('click', hideContextMenuOnClickOutside, { capture: true }); document.removeEventListener('contextmenu', hideContextMenuOnClickOutside, { capture: true }); }
+        function hideContextMenuOnClickOutside(event) { /* ... (same as V4) ... */ if (!contextMenu.contains(event.target)) { hideContextMenu(); } else { document.addEventListener('click', hideContextMenuOnClickOutside, { capture: true, once: true }); document.addEventListener('contextmenu', hideContextMenuOnClickOutside, { capture: true, once: true }); } }
+        function handleContextMenuAction(event) { /* ... (same as V4) ... */ const actionElement = event.target.closest('.context-menu-item'); if (!actionElement) return; const action = actionElement.dataset.action; if (action && contextTargetItemId) { switch (action) { case 'set-icon': handleSetIcon(contextTargetItemId); break; case 'rename': handleItemRename(contextTargetItemId); break; case 'move-top': handleMoveToTop(contextTargetItemId); break; case 'delete': handleItemDelete(contextTargetItemId); break; } } hideContextMenu(); }
+
+
+        // --- Event Listeners ---
+        window.addEventListener('load', () => { loadDataAndSettings(); renderApp(); });
+
+        // Sidebar
+        sidebarResizer.addEventListener('mousedown', startResizeSidebar);
+        sidebarCollapseBtn.addEventListener('click', () => { settings.sidebarCollapsed = !settings.sidebarCollapsed; saveSettings(); applySettingsUI(); });
+        templatesList.addEventListener('click', (e) => { // Handle template selection
+            const templateItem = e.target.closest('.template-item');
+            if (templateItem && templateItem.dataset.templateKey) {
+                 createNewItem('note', templateItem.dataset.templateKey);
+                 // Optionally hide dropdown after selection, though hover works okay
+            }
+        });
+        newFolderBtn.addEventListener('click', () => createNewItem('folder'));
+        settingsBtn.addEventListener('click', showSettingsModal);
+
+        // Main Content Actions
+        focusModeBtn.addEventListener('click', toggleFocusMode);
+
+        // Editor
+        editorToolbar.addEventListener('click', handleToolbarCommand);
+        inlineCodeBtn.addEventListener('click', handleInlineCode);
+        checklistBtn.addEventListener('click', handleChecklist);
+        noteTitleInput.addEventListener('input', handleTitleChange);
+        noteContentEditor.addEventListener('input', handleContentChange);
+        noteContentEditor.addEventListener('blur', handleContentChange);
+        insertImageBtn.addEventListener('click', handleImageInsert);
+        imageFileInput.addEventListener('change', processImageFile);
+
+        // Settings Modal
+        modalCloseBtn.addEventListener('click', hideSettingsModal);
+        settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) { hideSettingsModal(); } });
+        themeToggleInput.addEventListener('change', handleThemeToggle);
+        exportJsonBtn.addEventListener('click', () => exportData('json'));
+        exportMdBtn.addEventListener('click', () => exportData('md'));
+        exportTxtBtn.addEventListener('click', () => exportData('txt'));
+        importBtnModal.addEventListener('click', triggerImport);
+        importFileInput.addEventListener('change', handleImportFile);
+        deleteAllDataBtn.addEventListener('click', deleteAllData);
+
+         // Context Menu
+         contextMenu.addEventListener('click', handleContextMenuAction);
+         noteTreeContainer.addEventListener('contextmenu', (e) => { if (e.target.closest('.tree-node')) { e.preventDefault(); } });
+         mainContent.addEventListener('click', hideContextMenu);
+         editorArea.addEventListener('scroll', hideContextMenu, true); // Hide on editor scroll too
+         window.addEventListener('resize', hideContextMenu);
+
+         // Initial setup
+         if (findItem(settings.currentItemId)?.type === 'note') { setupChecklistListeners(); }
+
+    </script>
+
+</body>
+</html>

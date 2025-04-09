@@ -1,0 +1,517 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Image Generator</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #fca311;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f0f2f5;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--secondary);
+        }
+        
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .image-section, .transcription-section {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .image-container {
+            height: 400px;
+            overflow: hidden;
+            border-radius: 8px;
+            position: relative;
+            margin-bottom: 20px;
+            background-color: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background-color: var(--secondary);
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .timer {
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+            color: var(--secondary);
+        }
+        
+        .transcription-box {
+            min-height: 200px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #fafafa;
+            margin-bottom: 20px;
+            overflow-y: auto;
+        }
+        
+        .ai-analysis {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f5f7ff;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .mic-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .mic-active {
+            background-color: rgba(76, 201, 240, 0.3);
+            color: var(--success);
+        }
+        
+        .mic-inactive {
+            background-color: rgba(247, 37, 133, 0.1);
+            color: var(--danger);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Random Image Generator with Voice Transcription</h1>
+            <p>Generate random images and describe them using your voice</p>
+        </header>
+        
+        <div class="app-container">
+            <!-- Image Section -->
+            <div class="image-section">
+                <div class="card">
+                    <h2>Random Image</h2>
+                    <div class="image-container" id="imageContainer">
+                        <p>Click "Generate Random Image" to start</p>
+                        <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                    <button id="generateBtn">Generate Random Image</button>
+                    <button id="analyzeBtn" disabled>Analyze with AI</button>
+                    
+                    <div class="ai-analysis" id="aiAnalysis" style="display: none;">
+                        <h3>AI Image Description:</h3>
+                        <p id="aiDescription"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Transcription Section -->
+            <div class="transcription-section">
+                <div class="card">
+                    <h2>Voice Transcription</h2>
+                    <div class="timer" id="timer">02:00</div>
+                    <div class="button-group">
+                        <button id="startBtn">Start Recording</button>
+                        <button id="pauseBtn" disabled>Pause</button>
+                        <button id="resetBtn" disabled>Reset</button>
+                    </div>
+                    
+                    <div class="mic-status mic-inactive" id="micStatus">
+                        Microphone inactive
+                    </div>
+                    
+                    <h3>Your Description:</h3>
+                    <div class="transcription-box" id="transcription"></div>
+                    
+                    <button id="compareBtn" disabled>Compare with AI</button>
+                    
+                    <div class="ai-analysis" id="comparisonResult" style="display: none;">
+                        <h3>AI Feedback:</h3>
+                        <p id="comparisonText"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // DOM Elements
+        const imageContainer = document.getElementById('imageContainer');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const generateBtn = document.getElementById('generateBtn');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const aiAnalysis = document.getElementById('aiAnalysis');
+        const aiDescription = document.getElementById('aiDescription');
+        const timerElement = document.getElementById('timer');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const micStatus = document.getElementById('micStatus');
+        const transcriptionBox = document.getElementById('transcription');
+        const compareBtn = document.getElementById('compareBtn');
+        const comparisonResult = document.getElementById('comparisonResult');
+        const comparisonText = document.getElementById('comparisonText');
+        
+        // Variables
+        let currentImage = '';
+        let timerInterval;
+        let timeLeft = 120; // 2 minutes in seconds
+        let recognition;
+        let isRecording = false;
+        let isPaused = false;
+        let transcript = '';
+        const mistralApiKey = '9kYf2VlF8fPDHChBoD4L2WEOztL732z9';
+        
+        // Initialize speech recognition
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const result = event.results[i];
+                    if (result.isFinal) {
+                        transcript += result[0].transcript + ' ';
+                    } else {
+                        interimTranscript += result[0].transcript;
+                    }
+                }
+                
+                transcriptionBox.innerHTML = transcript + '<i style="color: #888;">' + interimTranscript + '</i>';
+            };
+            
+            recognition.onend = () => {
+                if (isRecording && !isPaused) {
+                    recognition.start();
+                }
+            };
+        } else {
+            alert('Speech recognition is not supported in your browser. Please try using Chrome or Edge.');
+        }
+        
+        // Timer functions
+        function updateTimer() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                stopRecording();
+                compareBtn.disabled = false;
+            }
+        }
+        
+        function startTimer() {
+            if (!timerInterval) {
+                timerInterval = setInterval(() => {
+                    if (!isPaused) {
+                        timeLeft--;
+                        updateTimer();
+                    }
+                }, 1000);
+            }
+        }
+        
+        function pauseTimer() {
+            isPaused = true;
+            
+            if (isRecording) {
+                recognition.stop();
+                micStatus.textContent = 'Microphone paused';
+                micStatus.className = 'mic-status mic-inactive';
+            }
+            
+            pauseBtn.textContent = 'Resume';
+        }
+        
+        function resumeTimer() {
+            isPaused = false;
+            
+            if (isRecording) {
+                recognition.start();
+                micStatus.textContent = 'Microphone active - speaking';
+                micStatus.className = 'mic-status mic-active';
+            }
+            
+            pauseBtn.textContent = 'Pause';
+        }
+        
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            timeLeft = 120;
+            updateTimer();
+            stopRecording();
+            transcript = '';
+            transcriptionBox.innerHTML = '';
+            compareBtn.disabled = true;
+        }
+        
+        // Recording functions
+        function startRecording() {
+            if (recognition) {
+                isRecording = true;
+                recognition.start();
+                micStatus.textContent = 'Microphone active - speaking';
+                micStatus.className = 'mic-status mic-active';
+                
+                startBtn.disabled = true;
+                pauseBtn.disabled = false;
+                resetBtn.disabled = false;
+                
+                startTimer();
+            }
+        }
+        
+        function stopRecording() {
+            if (recognition) {
+                isRecording = false;
+                recognition.stop();
+                micStatus.textContent = 'Microphone inactive';
+                micStatus.className = 'mic-status mic-inactive';
+                
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+                // Keep reset enabled to allow clearing
+            }
+        }
+        
+        // Image generation functions
+        async function generateRandomImage() {
+            // Use Unsplash API to get a random image
+            loadingOverlay.style.display = 'flex';
+            imageContainer.innerHTML = '';
+            
+            try {
+                // We'll use Random Unsplash API
+                const response = await fetch('https://source.unsplash.com/random/800x600');
+                
+                if (response.ok) {
+                    currentImage = response.url;
+                    const img = document.createElement('img');
+                    img.src = currentImage;
+                    img.onload = () => {
+                        imageContainer.appendChild(img);
+                        loadingOverlay.style.display = 'none';
+                        analyzeBtn.disabled = false;
+                    };
+                } else {
+                    throw new Error('Failed to fetch image');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                imageContainer.innerHTML = '<p>Failed to load image. Please try again.</p>';
+                loadingOverlay.style.display = 'none';
+            }
+        }
+        
+        // AI analysis functions
+        async function analyzeImage() {
+            if (!currentImage) return;
+            
+            aiDescription.textContent = 'Analyzing image...';
+            aiAnalysis.style.display = 'block';
+            
+            try {
+                // Simulate AI image analysis with Mistral API
+                // In a real application, you would send the image to an image analysis API
+                const messages = [
+                    { "role": "system", "content": "You are a detailed image description AI. Describe this image thoroughly as if you can see it. Be specific and descriptive for 2 minutes worth of content. The image URL is: " + currentImage },
+                    { "role": "user", "content": "Please describe this image in detail." }
+                ];
+                
+                const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${mistralApiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'mistral-tiny',
+                        messages: messages
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const description = data.choices[0].message.content;
+                    aiDescription.textContent = description;
+                } else {
+                    // Fallback for demo purposes
+                    aiDescription.textContent = "This is a randomly generated image from Unsplash. The content varies but typically includes high-quality photography of landscapes, people, objects, or abstract compositions. Each image has its own unique characteristics, lighting, composition, and subject matter that makes it visually interesting.";
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                // Fallback for demo purposes
+                aiDescription.textContent = "This is a randomly generated image from Unsplash. The content varies but typically includes high-quality photography of landscapes, people, objects, or abstract compositions. Each image has its own unique characteristics, lighting, composition, and subject matter that makes it visually interesting.";
+            }
+        }
+        
+        async function compareWithAI() {
+            if (!transcript || !aiDescription.textContent) return;
+            
+            comparisonText.textContent = 'Analyzing your description...';
+            comparisonResult.style.display = 'block';
+            
+            try {
+                // Use Mistral API to compare descriptions
+                const messages = [
+                    { "role": "system", "content": "You are an AI that compares image descriptions. Compare the AI-generated description and the user's voice transcription of the same image. Provide feedback and tips on how the user could improve their description." },
+                    { "role": "user", "content": `AI Description: ${aiDescription.textContent}\n\nUser's Description: ${transcript}\n\nPlease compare these descriptions and provide constructive feedback and tips.` }
+                ];
+                
+                const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${mistralApiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'mistral-tiny',
+                        messages: messages
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const comparison = data.choices[0].message.content;
+                    comparisonText.textContent = comparison;
+                } else {
+                    // Fallback for demo purposes
+                    comparisonText.textContent = "Your description focused on different aspects than the AI description. Try to be more specific about the details, colors, composition, and mood of the image. Consider the context and potential story behind the image for a more comprehensive description.";
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                // Fallback for demo purposes
+                comparisonText.textContent = "Your description focused on different aspects than the AI description. Try to be more specific about the details, colors, composition, and mood of the image. Consider the context and potential story behind the image for a more comprehensive description.";
+            }
+        }
+        
+        // Event listeners
+        generateBtn.addEventListener('click', generateRandomImage);
+        analyzeBtn.addEventListener('click', analyzeImage);
+        
+        startBtn.addEventListener('click', startRecording);
+        
+        pauseBtn.addEventListener('click', () => {
+            if (isPaused) {
+                resumeTimer();
+            } else {
+                pauseTimer();
+            }
+        });
+        
+        resetBtn.addEventListener('click', resetTimer);
+        compareBtn.addEventListener('click', compareWithAI);
+    </script>
+</body>
+</html>

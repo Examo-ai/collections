@@ -1,0 +1,2097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Portfolio | Student Developer</title>
+    <style>
+        /* Variables */
+        :root {
+            /* Colors */
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #7209b7;
+            --accent: #4cc9f0;
+            --dark: #1a1a2e;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+            --success: #06d6a0;
+            --warning: #ffd166;
+            --danger: #ef476f;
+            
+            /* Fonts */
+            --font-primary: 'Poppins', sans-serif;
+            --font-secondary: 'Montserrat', sans-serif;
+            
+            /* Spacing */
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2.5rem;
+            
+            /* Border Radius */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            
+            /* Shadows */
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.15);
+            --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.2);
+            
+            /* Transitions */
+            --transition-fast: 0.2s ease;
+            --transition-normal: 0.3s ease;
+            --transition-slow: 0.5s ease;
+        }
+
+        /* Dark Mode Variables */
+        .dark-mode {
+            --primary: #4cc9f0;
+            --primary-dark: #38b6dc;
+            --secondary: #8429c7;
+            --accent: #4361ee;
+            --dark: #f8f9fa;
+            --light: #1a1a2e;
+            --gray: #adb5bd;
+        }
+
+        /* Reset & Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            line-height: 1.6;
+            color: var(--dark);
+            background-color: var(--light);
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-secondary);
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: var(--spacing-md);
+            color: var(--dark);
+        }
+
+        h1 {
+            font-size: 3rem;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+        }
+
+        h3 {
+            font-size: 2rem;
+        }
+
+        h4 {
+            font-size: 1.5rem;
+        }
+
+        p {
+            margin-bottom: var(--spacing-md);
+        }
+
+        a {
+            color: var(--primary);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+
+        a:hover {
+            color: var(--primary-dark);
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Container */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            text-align: center;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--primary);
+            color: white;
+            transform: translateY(-3px);
+        }
+
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-sm);
+            transition: all var(--transition-normal);
+        }
+
+        .dark-mode header {
+            background-color: rgba(26, 26, 46, 0.95);
+        }
+
+        header.scrolled {
+            box-shadow: var(--shadow-md);
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            transition: padding var(--transition-normal);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .logo span {
+            color: var(--secondary);
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--dark);
+            font-weight: 500;
+            position: relative;
+        }
+
+        .dark-mode .nav-links a {
+            color: var(--light);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: var(--primary);
+            transition: width var(--transition-normal);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-buttons {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--dark);
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: color var(--transition-fast);
+        }
+
+        .dark-mode .theme-toggle {
+            color: var(--light);
+        }
+
+        .language-selector {
+            position: relative;
+        }
+
+        .language-toggle {
+            background: none;
+            border: none;
+            color: var(--dark);
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dark-mode .language-toggle {
+            color: var(--light);
+        }
+
+        .language-options {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: white;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            padding: 0.5rem;
+            min-width: 120px;
+            display: none;
+            z-index: 10;
+        }
+
+        .dark-mode .language-options {
+            background-color: var(--dark);
+        }
+
+        .language-options.show {
+            display: block;
+        }
+
+        .language-option {
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: background-color var(--transition-fast);
+            border-radius: var(--radius-sm);
+        }
+
+        .language-option:hover {
+            background-color: rgba(67, 97, 238, 0.1);
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--dark);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .dark-mode .menu-toggle {
+            color: var(--light);
+        }
+
+        /* Hero Section */
+        .hero-section {
+            padding: 10rem 0 5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(67, 97, 238, 0.1), rgba(114, 9, 183, 0.1));
+            z-index: -1;
+        }
+
+        .hero-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .hero-text {
+            flex: 1;
+            max-width: 600px;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            color: var(--gray);
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .hero-image {
+            flex: 1;
+            max-width: 500px;
+            position: relative;
+        }
+
+        .hero-img {
+            width: 100%;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            transform: rotate(3deg);
+            transition: transform var(--transition-normal);
+        }
+
+        .hero-img:hover {
+            transform: rotate(0);
+        }
+
+        .hero-social {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .social-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-sm);
+            transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+            color: var(--primary);
+            font-size: 1.25rem;
+        }
+
+        .dark-mode .social-icon {
+            background-color: var(--dark);
+            color: var(--primary);
+        }
+
+        .social-icon:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+            color: var(--primary-dark);
+        }
+
+        /* About Section */
+        .about-section {
+            padding: 5rem 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            position: relative;
+            display: inline-block;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 3px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 3px;
+        }
+
+        .section-subtitle {
+            color: var(--gray);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .about-content {
+            display: flex;
+            align-items: center;
+            gap: 3rem;
+        }
+
+        .about-image {
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .about-img {
+            width: 100%;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .about-text {
+            flex: 1;
+        }
+
+        .about-text h3 {
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .about-text p {
+            margin-bottom: 1.5rem;
+        }
+
+        .about-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-item i {
+            color: var(--primary);
+            font-size: 1.25rem;
+        }
+
+        /* Skills Section */
+        .skills-section {
+            padding: 5rem 0;
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+
+        .dark-mode .skills-section {
+            background-color: rgba(67, 97, 238, 0.1);
+        }
+
+        .skills-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .skill-category {
+            background-color: white;
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+        }
+
+        .dark-mode .skill-category {
+            background-color: rgba(26, 26, 46, 0.8);
+        }
+
+        .skill-category:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .skill-category h3 {
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            text-align: center;
+        }
+
+        .skill-list {
+            list-style: none;
+        }
+
+        .skill-item {
+            margin-bottom: 1.5rem;
+        }
+
+        .skill-name {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .skill-bar {
+            height: 8px;
+            background-color: rgba(67, 97, 238, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .skill-progress {
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 4px;
+            width: 0;
+            transition: width 1.5s ease;
+        }
+
+        /* Projects Section */
+        .projects-section {
+            padding: 5rem 0;
+        }
+
+        .projects-filter {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1.5rem;
+            background-color: white;
+            border: 1px solid rgba(67, 97, 238, 0.2);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            font-weight: 500;
+        }
+
+        .dark-mode .filter-btn {
+            background-color: rgba(26, 26, 46, 0.8);
+            border-color: rgba(67, 97, 238, 0.4);
+        }
+
+        .filter-btn.active, .filter-btn:hover {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .project-card {
+            background-color: white;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+        }
+
+        .dark-mode .project-card {
+            background-color: rgba(26, 26, 46, 0.8);
+        }
+
+        .project-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .project-image {
+            position: relative;
+            overflow: hidden;
+            height: 200px;
+        }
+
+        .project-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform var(--transition-normal);
+        }
+
+        .project-card:hover .project-img {
+            transform: scale(1.1);
+        }
+
+        .project-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(67, 97, 238, 0.1), rgba(114, 9, 183, 0.7));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity var(--transition-normal);
+        }
+
+        .project-card:hover .project-overlay {
+            opacity: 1;
+        }
+
+        .project-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .project-link {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            transition: transform var(--transition-normal);
+        }
+
+        .project-link:hover {
+            transform: translateY(-5px);
+        }
+
+        .project-content {
+            padding: 1.5rem;
+        }
+
+        .project-title {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .project-category {
+            color: var(--primary);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .project-description {
+            margin-bottom: 1.5rem;
+            font-size: 0.9375rem;
+        }
+
+        .project-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .project-tag {
+            padding: 0.25rem 0.75rem;
+            background-color: rgba(67, 97, 238, 0.1);
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--primary);
+        }
+
+        .dark-mode .project-tag {
+            background-color: rgba(67, 97, 238, 0.2);
+        }
+
+        /* Contact Section */
+        .contact-section {
+            padding: 5rem 0;
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+
+        .dark-mode .contact-section {
+            background-color: rgba(67, 97, 238, 0.1);
+        }
+
+        .contact-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+        }
+
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .contact-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-sm);
+            color: var(--primary);
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .dark-mode .contact-icon {
+            background-color: rgba(26, 26, 46, 0.8);
+        }
+
+        .contact-details h4 {
+            margin-bottom: 0.25rem;
+            font-size: 1.125rem;
+        }
+
+        .contact-details p, .contact-details a {
+            color: var(--gray);
+            font-size: 0.9375rem;
+        }
+
+        .contact-form {
+            background-color: white;
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .dark-mode .contact-form {
+            background-color: rgba(26, 26, 46, 0.8);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: var(--radius-md);
+            background-color: rgba(255, 255, 255, 0.9);
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+        }
+
+        .dark-mode .form-control {
+            background-color: rgba(26, 26, 46, 0.5);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        textarea.form-control {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--dark);
+            color: white;
+            padding: 3rem 0 1rem;
+        }
+
+        .dark-mode footer {
+            background-color: rgba(26, 26, 46, 0.95);
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .footer-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .footer-logo span {
+            color: var(--primary);
+        }
+
+        .footer-text {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .footer-social a {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: background-color var(--transition-normal), transform var(--transition-normal);
+        }
+
+        .footer-social a:hover {
+            background-color: var(--primary);
+            transform: translateY(-5px);
+        }
+
+        .footer-links h4 {
+            color: white;
+            margin-bottom: 1.5rem;
+            font-size: 1.25rem;
+        }
+
+        .footer-links ul {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.75rem;
+        }
+
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.7);
+            transition: color var(--transition-fast);
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.875rem;
+        }
+
+        /* Back to Top Button */
+        .back-to-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            box-shadow: var(--shadow-md);
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-normal);
+            z-index: 99;
+        }
+
+        .back-to-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate {
+            opacity: 0;
+            animation: fadeIn 1s ease forwards;
+        }
+
+        .delay-1 { animation-delay: 0.2s; }
+        .delay-2 { animation-delay: 0.4s; }
+        .delay-3 { animation-delay: 0.6s; }
+        .delay-4 { animation-delay: 0.8s; }
+        .delay-5 { animation-delay: 1s; }
+
+        /* Responsive Styles */
+        @media (max-width: 992px) {
+            h1 { font-size: 2.5rem; }
+            h2 { font-size: 2rem; }
+            h3 { font-size: 1.75rem; }
+            
+            .hero-title { font-size: 2.5rem; }
+            
+            .hero-content {
+                flex-direction: column-reverse;
+                text-align: center;
+            }
+            
+            .hero-social {
+                justify-content: center;
+            }
+            
+            .about-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .about-info {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: block;
+            }
+            
+            .nav-links {
+                position: fixed;
+                top: 70px;
+                left: 0;
+                width: 100%;
+                background-color: white;
+                flex-direction: column;
+                padding: 1rem;
+                gap: 1rem;
+                box-shadow: var(--shadow-md);
+                transform: translateY(-100%);
+                opacity: 0;
+                visibility: hidden;
+                transition: all var(--transition-normal);
+                z-index: 999;
+            }
+            
+            .dark-mode .nav-links {
+                background-color: var(--dark);
+            }
+            
+            .nav-links.show {
+                transform: translateY(0);
+                opacity: 1;
+                visibility: visible;
+            }
+            
+            .projects-filter {
+                overflow-x: auto;
+                padding-bottom: 1rem;
+                justify-content: flex-start;
+            }
+            
+            .contact-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .hero-title { font-size: 2rem; }
+            .section-title { font-size: 2rem; }
+            
+            .hero-cta {
+                flex-direction: column;
+            }
+            
+            .about-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .footer-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            
+            .footer-social {
+                justify-content: center;
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="#" class="logo">Portfolio<span>.</span></a>
+                
+                <ul class="nav-links">
+                    <li><a href="#home" class="nav-link" data-lang="nav-home">Home</a></li>
+                    <li><a href="#about" class="nav-link" data-lang="nav-about">About</a></li>
+                    <li><a href="#skills" class="nav-link" data-lang="nav-skills">Skills</a></li>
+                    <li><a href="#projects" class="nav-link" data-lang="nav-projects">Projects</a></li>
+                    <li><a href="#contact" class="nav-link" data-lang="nav-contact">Contact</a></li>
+                </ul>
+                
+                <div class="nav-buttons">
+                    <div class="language-selector">
+                        <button class="language-toggle">
+                            <span class="current-lang">EN</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="language-options">
+                            <div class="language-option" data-lang="en">English</div>
+                            <div class="language-option" data-lang="de">Deutsch</div>
+                            <div class="language-option" data-lang="fr">Français</div>
+                        </div>
+                    </div>
+                    
+                    <button class="theme-toggle">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                </div>
+                
+                <button class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section" id="home">
+        <div class="hero-bg"></div>
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1 class="hero-title animate" data-lang="hero-title">Hi, I'm <span class="name">Max Mustermann</span></h1>
+                    <p class="hero-subtitle animate delay-1" data-lang="hero-subtitle">A passionate student developer from Germany, exploring the world of web development and design.</p>
+                    <div class="hero-cta animate delay-2">
+                        <a href="#projects" class="btn btn-primary" data-lang="hero-cta-projects">View My Work</a>
+                        <a href="#contact" class="btn btn-secondary" data-lang="hero-cta-contact">Contact Me</a>
+                    </div>
+                    <div class="hero-social animate delay-3">
+                        <a href="#" class="social-icon"><i class="fab fa-github"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+                <div class="hero-image animate delay-2">
+                    <img src="https://via.placeholder.com/500x600" alt="Profile Image" class="hero-img">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about-section" id="about">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title" data-lang="about-title">About Me</h2>
+                <p class="section-subtitle" data-lang="about-subtitle">Get to know me better</p>
+            </div>
+            <div class="about-content">
+                <div class="about-image animate">
+                    <img src="https://via.placeholder.com/400x500" alt="About Image" class="about-img">
+                </div>
+                <div class="about-text">
+                    <h3 data-lang="about-heading">Student & Developer</h3>
+                    <p data-lang="about-text-1">Hello! I'm a 15-year-old student from Germany with a passion for technology and programming. I started my coding journey when I was 12 and have been fascinated by the world of web development ever since.</p>
+                    <p data-lang="about-text-2">Currently, I'm focusing on front-end development, learning HTML, CSS, and JavaScript. I enjoy creating responsive websites and interactive applications that solve real-world problems.</p>
+                    <div class="about-info">
+                        <div class="info-item">
+                            <i class="fas fa-user"></i>
+                            <span data-lang="about-name">Name: Max Mustermann</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-calendar"></i>
+                            <span data-lang="about-age">Age: 15</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-location-dot"></i>
+                            <span data-lang="about-location">Location: Berlin, Germany</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-envelope"></i>
+                            <span>Email: example@email.com</span>
+                        </div>
+                    </div>
+                    <a href="#" class="btn btn-primary" data-lang="about-cta">Download CV</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Skills Section -->
+    <section class="skills-section" id="skills">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title" data-lang="skills-title">My Skills</h2>
+                <p class="section-subtitle" data-lang="skills-subtitle">What I've learned so far</p>
+            </div>
+            <div class="skills-content">
+                <div class="skill-category animate">
+                    <h3 data-lang="skills-frontend">Frontend Development</h3>
+                    <ul class="skill-list">
+                        <li class="skill-item">
+                            <div class="skill-name">
+                                <span>HTML</span>
+                                <span>85%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="85"></div>
+                            </div>
+                        </li>
+                        <li class="skill-item">
+                            <div class="skill-name">
+                                <span>CSS</span>
+                                <span>75%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="75"></div>
+                            </div>
+                        </li>
+                        <li class="skill-item">
+                            <div class="skill-name">
+                                <span>JavaScript</span>
+                                <span>60%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="60"></div>
+                            </div>
+                        </li>
+                        <li class="skill-item">
+                            <div class="skill-name">
+                                <span>Bootstrap</span>
+                                <span>70%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="70"></div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="skill-category animate delay-1">
+                    <h3 data-lang="skills-design">Design</h3>
+                    <ul class="skill-list">
+                        <li class="skill-item">
+                            <div class="skill-name">
+                                <span>Figma</span>
+                                <span>65%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="65"></div>
+                            </div>
+                        </li>
+                        <li class="skill-item">
+                            <div class="skill-name">
+                                <span>Canva</span>
+                                <span>80%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="80"></div>
+                            </div>
+                        </li>
+                        <li class="skill-item">
+                            <div class="skill-name">
+                                <span>UI/UX</span>
+                                <span>55%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="55"></div>
+                            </div>
+                        </li>
+                        <li class="skill-item">
+                            <div class="skill-name">
+                                <span>Responsive Design</span>
+                                <span>75%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="75"></div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="skill-category animate delay-2">
+                    <h3 data-lang="skills-other">Other Skills</h3>
+                    <ul class="skill-list">
+                        <li class="skill-item">
+                            <div class="skill-name">
+                                <span>Git</span>
+                                <span>50%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="50"></div>
+                            </div>
+                        </li>
+                        <li class="skill-item">
+                            <div class="skill-name">
+                                <span>Problem Solving</span>
+                                <span>85%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="85"></div>
+                            </div>
+                        </li>
+                        <li class="skill-item">
+                            <div class="skill-name">
+                                <span>Teamwork</span>
+                                <span>90%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="90"></div>
+                            </div>
+                        </li>
+                        <li class="skill-item">
+                            <div class="skill-name">
+                                <span>Communication</span>
+                                <span>80%</span>
+                            </div>
+                            <div class="skill-bar">
+                                <div class="skill-progress" data-width="80"></div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section class="projects-section" id="projects">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title" data-lang="projects-title">My Projects</h2>
+                <p class="section-subtitle" data-lang="projects-subtitle">Some of my recent work</p>
+            </div>
+            <div class="projects-filter">
+                <button class="filter-btn active" data-filter="all" data-lang="projects-filter-all">All</button>
+                <button class="filter-btn" data-filter="web" data-lang="projects-filter-web">Web</button>
+                <button class="filter-btn" data-filter="app" data-lang="projects-filter-app">App</button>
+                <button class="filter-btn" data-filter="design" data-lang="projects-filter-design">Design</button>
+            </div>
+            <div class="projects-grid">
+                <!-- Project 1 -->
+                <div class="project-card animate" data-category="web">
+                    <div class="project-image">
+                        <img src="https://via.placeholder.com/600x400" alt="Project 1" class="project-img">
+                        <div class="project-overlay">
+                            <div class="project-links">
+                                <a href="#" class="project-link"><i class="fas fa-link"></i></a>
+                                <a href="#" class="project-link"><i class="fab fa-github"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="project-content">
+                        <h3 class="project-title" data-lang="project1-title">Personal Blog</h3>
+                        <div class="project-category" data-lang="project1-category">Web Development</div>
+                        <p class="project-description" data-lang="project1-description">A responsive blog website built with HTML, CSS, and JavaScript. Features include dark mode, responsive design, and comment system.</p>
+                        <div class="project-tags">
+                            <span class="project-tag">HTML</span>
+                            <span class="project-tag">CSS</span>
+                            <span class="project-tag">JavaScript</span>
+                            <span class="project-tag">Responsive</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Project 2 -->
+                <div class="project-card animate delay-1" data-category="design">
+                    <div class="project-image">
+                        <img src="https://via.placeholder.com/600x400" alt="Project 2" class="project-img">
+                        <div class="project-overlay">
+                            <div class="project-links">
+                                <a href="#" class="project-link"><i class="fas fa-link"></i></a>
+                                <a href="#" class="project-link"><i class="fab fa-github"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="project-content">
+                        <h3 class="project-title" data-lang="project2-title">UI Design Collection</h3>
+                        <div class="project-category" data-lang="project2-category">UI/UX Design</div>
+                        <p class="project-description" data-lang="project2-description">A collection of UI designs for mobile applications, created using Figma. Includes wireframes, prototypes, and final designs.</p>
+                        <div class="project-tags">
+                            <span class="project-tag">Figma</span>
+                            <span class="project-tag">UI/UX</span>
+                            <span class="project-tag">Prototyping</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Project 3 -->
+                <div class="project-card animate delay-2" data-category="app">
+                    <div class="project-image">
+                        <img src="https://via.placeholder.com/600x400" alt="Project 3" class="project-img">
+                        <div class="project-overlay">
+                            <div class="project-links">
+                                <a href="#" class="project-link"><i class="fas fa-link"></i></a>
+                                <a href="#" class="project-link"><i class="fab fa-github"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="project-content">
+                        <h3 class="project-title" data-lang="project3-title">Weather App</h3>
+                        <div class="project-category" data-lang="project3-category">Web Application</div>
+                        <p class="project-description" data-lang="project3-description">A weather application that displays current weather and forecasts for any location. Built with HTML, CSS, and JavaScript using a weather API.</p>
+                        <div class="project-tags">
+                            <span class="project-tag">HTML</span>
+                            <span class="project-tag">CSS</span>
+                            <span class="project-tag">JavaScript</span>
+                            <span class="project-tag">API</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Project 4 -->
+                <div class="project-card animate delay-3" data-category="web">
+                    <div class="project-image">
+                        <img src="https://via.placeholder.com/600x400" alt="Project 4" class="project-img">
+                        <div class="project-overlay">
+                            <div class="project-links">
+                                <a href="#" class="project-link"><i class="fas fa-link"></i></a>
+                                <a href="#" class="project-link"><i class="fab fa-github"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="project-content">
+                        <h3 class="project-title" data-lang="project4-title">School Club Website</h3>
+                        <div class="project-category" data-lang="project4-category">Web Development</div>
+                        <p class="project-description" data-lang="project4-description">A website for our school's coding club, featuring event information, resources, and a member registration system.</p>
+                        <div class="project-tags">
+                            <span class="project-tag">HTML</span>
+                            <span class="project-tag">CSS</span>
+                            <span class="project-tag">JavaScript</span>
+                            <span class="project-tag">Bootstrap</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Project 5 -->
+                <div class="project-card animate delay-4" data-category="design">
+                    <div class="project-image">
+                        <img src="https://via.placeholder.com/600x400" alt="Project 5" class="project-img">
+                        <div class="project-overlay">
+                            <div class="project-links">
+                                <a href="#" class="project-link"><i class="fas fa-link"></i></a>
+                                <a href="#" class="project-link"><i class="fab fa-github"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="project-content">
+                        <h3 class="project-title" data-lang="project5-title">Logo Design Portfolio</h3>
+                        <div class="project-category" data-lang="project5-category">Graphic Design</div>
+                        <p class="project-description" data-lang="project5-description">A collection of logo designs created for various projects and competitions. Includes the design process and final products.</p>
+                        <div class="project-tags">
+                            <span class="project-tag">Canva</span>
+                            <span class="project-tag">Logo Design</span>
+                            <span class="project-tag">Branding</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Project 6 -->
+                <div class="project-card animate delay-5" data-category="app">
+                    <div class="project-image">
+                        <img src="https://via.placeholder.com/600x400" alt="Project 6" class="project-img">
+                        <div class="project-overlay">
+                            <div class="project-links">
+                                <a href="#" class="project-link"><i class="fas fa-link"></i></a>
+                                <a href="#" class="project-link"><i class="fab fa-github"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="project-content">
+                        <h3 class="project-title" data-lang="project6-title">To-Do List App</h3>
+                        <div class="project-category" data-lang="project6-category">Web Application</div>
+                        <p class="project-description" data-lang="project6-description">A simple to-do list application with features like task categories, due dates, and local storage to save tasks.</p>
+                        <div class="project-tags">
+                            <span class="project-tag">HTML</span>
+                            <span class="project-tag">CSS</span>
+                            <span class="project-tag">JavaScript</span>
+                            <span class="project-tag">LocalStorage</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact-section" id="contact">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title" data-lang="contact-title">Contact Me</h2>
+                <p class="section-subtitle" data-lang="contact-subtitle">Get in touch with me</p>
+            </div>
+            <div class="contact-content">
+                <div class="contact-info">
+                    <div class="contact-item animate">
+                        <div class="contact-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h4 data-lang="contact-location-title">Location</h4>
+                            <p data-lang="contact-location">Berlin, Germany</p>
+                        </div>
+                    </div>
+                    <div class="contact-item animate delay-1">
+                        <div class="contact-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h4 data-lang="contact-email-title">Email</h4>
+                            <a href="mailto:example@email.com">example@email.com</a>
+                        </div>
+                    </div>
+                    <div class="contact-item animate delay-2">
+                        <div class="contact-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h4 data-lang="contact-phone-title">Phone</h4>
+                            <p>+49 123 456 7890</p>
+                        </div>
+                    </div>
+                    <div class="contact-item animate delay-3">
+                        <div class="contact-icon">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h4 data-lang="contact-languages-title">Languages</h4>
+                            <p data-lang="contact-languages">German (Native), English (Fluent), French (Basic)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="contact-form animate delay-2">
+                    <form id="contactForm">
+                        <div class="form-group">
+                            <label for="name" class="form-label" data-lang="contact-form-name">Name</label>
+                            <input type="text" id="name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email" class="form-label" data-lang="contact-form-email">Email</label>
+                            <input type="email" id="email" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="subject" class="form-label" data-lang="contact-form-subject">Subject</label>
+                            <input type="text" id="subject" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="message" class="form-label" data-lang="contact-form-message">Message</label>
+                            <textarea id="message" class="form-control" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary" data-lang="contact-form-submit">Send Message</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <div class="footer-logo">Portfolio<span>.</span></div>
+                    <p class="footer-text" data-lang="footer-text">A showcase of my projects and skills as a student developer.</p>
+                    <div class="footer-social">
+                        <a href="#"><i class="fab fa-github"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+                <div class="footer-links">
+                    <h4 data-lang="footer-links-title">Quick Links</h4>
+                    <ul>
+                        <li><a href="#home" data-lang="footer-link-home">Home</a></li>
+                        <li><a href="#about" data-lang="footer-link-about">About</a></li>
+                        <li><a href="#skills" data-lang="footer-link-skills">Skills</a></li>
+                        <li><a href="#projects" data-lang="footer-link-projects">Projects</a></li>
+                        <li><a href="#contact" data-lang="footer-link-contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4 data-lang="footer-resources-title">Resources</h4>
+                    <ul>
+                        <li><a href="#" data-lang="footer-resource-1">My Blog</a></li>
+                        <li><a href="#" data-lang="footer-resource-2">Learning Resources</a></li>
+                        <li><a href="#" data-lang="footer-resource-3">Coding Challenges</a></li>
+                        <li><a href="#" data-lang="footer-resource-4">Design Inspiration</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p data-lang="footer-copyright">&copy; 2025 My Portfolio. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Back to Top Button -->
+    <div class="back-to-top">
+        <i class="fas fa-arrow-up"></i>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // DOM Elements
+        const header = document.querySelector('header');
+        const menuToggle = document.querySelector('.menu-toggle');
+        const navLinks = document.querySelector('.nav-links');
+        const themeToggle = document.querySelector('.theme-toggle');
+        const themeIcon = themeToggle.querySelector('i');
+        const languageToggle = document.querySelector('.language-toggle');
+        const languageOptions = document.querySelector('.language-options');
+        const currentLang = document.querySelector('.current-lang');
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const projectCards = document.querySelectorAll('.project-card');
+        const skillBars = document.querySelectorAll('.skill-progress');
+        const backToTop = document.querySelector('.back-to-top');
+        const contactForm = document.getElementById('contactForm');
+
+        // Language Translations
+        const translations = {
+            en: {
+                // Navigation
+                "nav-home": "Home",
+                "nav-about": "About",
+                "nav-skills": "Skills",
+                "nav-projects": "Projects",
+                "nav-contact": "Contact",
+                
+                // Hero Section
+                "hero-title": "Hi, I'm <span class='name'>Max Mustermann</span>",
+                "hero-subtitle": "A passionate student developer from Germany, exploring the world of web development and design.",
+                "hero-cta-projects": "View My Work",
+                "hero-cta-contact": "Contact Me",
+                
+                // About Section
+                "about-title": "About Me",
+                "about-subtitle": "Get to know me better",
+                "about-heading": "Student & Developer",
+                "about-text-1": "Hello! I'm a 15-year-old student from Germany with a passion for technology and programming. I started my coding journey when I was 12 and have been fascinated by the world of web development ever since.",
+                "about-text-2": "Currently, I'm focusing on front-end development, learning HTML, CSS, and JavaScript. I enjoy creating responsive websites and interactive applications that solve real-world problems.",
+                "about-name": "Name: Max Mustermann",
+                "about-age": "Age: 15",
+                "about-location": "Location: Berlin, Germany",
+                "about-cta": "Download CV",
+                
+                // Skills Section
+                "skills-title": "My Skills",
+                "skills-subtitle": "What I've learned so far",
+                "skills-frontend": "Frontend Development",
+                "skills-design": "Design",
+                "skills-other": "Other Skills",
+                
+                // Projects Section
+                "projects-title": "My Projects",
+                "projects-subtitle": "Some of my recent work",
+                "projects-filter-all": "All",
+                "projects-filter-web": "Web",
+                "projects-filter-app": "App",
+                "projects-filter-design": "Design",
+                
+                // Project 1
+                "project1-title": "Personal Blog",
+                "project1-category": "Web Development",
+                "project1-description": "A responsive blog website built with HTML, CSS, and JavaScript. Features include dark mode, responsive design, and comment system.",
+                
+                // Project 2
+                "project2-title": "UI Design Collection",
+                "project2-category": "UI/UX Design",
+                "project2-description": "A collection of UI designs for mobile applications, created using Figma. Includes wireframes, prototypes, and final designs.",
+                
+                // Project 3
+                "project3-title": "Weather App",
+                "project3-category": "Web Application",
+                "project3-description": "A weather application that displays current weather and forecasts for any location. Built with HTML, CSS, and JavaScript using a weather API.",
+                
+                // Project 4
+                "project4-title": "School Club Website",
+                "project4-category": "Web Development",
+                "project4-description": "A website for our school's coding club, featuring event information, resources, and a member registration system.",
+                
+                // Project 5
+                "project5-title": "Logo Design Portfolio",
+                "project5-category": "Graphic Design",
+                "project5-description": "A collection of logo designs created for various projects and competitions. Includes the design process and final products.",
+                
+                // Project 6
+                "project6-title": "To-Do List App",
+                "project6-category": "Web Application",
+                "project6-description": "A simple to-do list application with features like task categories, due dates, and local storage to save tasks.",
+                
+                // Contact Section
+                "contact-title": "Contact Me",
+                "contact-subtitle": "Get in touch with me",
+                "contact-location-title": "Location",
+                "contact-location": "Berlin, Germany",
+                "contact-email-title": "Email",
+                "contact-phone-title": "Phone",
+                "contact-languages-title": "Languages",
+                "contact-languages": "German (Native), English (Fluent), French (Basic)",
+                "contact-form-name": "Name",
+                "contact-form-email": "Email",
+                "contact-form-subject": "Subject",
+                "contact-form-message": "Message",
+                "contact-form-submit": "Send Message",
+                
+                // Footer
+                "footer-text": "A showcase of my projects and skills as a student developer.",
+                "footer-links-title": "Quick Links",
+                "footer-link-home": "Home",
+                "footer-link-about": "About",
+                "footer-link-skills": "Skills",
+                "footer-link-projects": "Projects",
+                "footer-link-contact": "Contact",
+                "footer-resources-title": "Resources",
+                "footer-resource-1": "My Blog",
+                "footer-resource-2": "Learning Resources",
+                "footer-resource-3": "Coding Challenges",
+                "footer-resource-4": "Design Inspiration",
+                "footer-copyright": "© 2025 My Portfolio. All Rights Reserved."
+            },
+            de: {
+                // Navigation
+                "nav-home": "Startseite",
+                "nav-about": "Über mich",
+                "nav-skills": "Fähigkeiten",
+                "nav-projects": "Projekte",
+                "nav-contact": "Kontakt",
+                
+                // Hero Section
+                "hero-title": "Hallo, ich bin <span class='name'>Max Mustermann</span>",
+                "hero-subtitle": "Ein leidenschaftlicher Schüler-Entwickler aus Deutschland, der die Welt der Webentwicklung und des Designs erkundet.",
+                "hero-cta-projects": "Meine Arbeit ansehen",
+                "hero-cta-contact": "Kontaktiere mich",
+                
+                // About Section
+                "about-title": "Über mich",
+                "about-subtitle": "Lerne mich besser kennen",
+                "about-heading": "Schüler & Entwickler",
+                "about-text-1": "Hallo! Ich bin ein 15-jähriger Schüler aus Deutschland mit einer Leidenschaft für Technologie und Programmierung. Ich habe mit 12 Jahren angefangen zu programmieren und bin seitdem von der Welt der Webentwicklung fasziniert.",
+                "about-text-2": "Derzeit konzentriere ich mich auf Frontend-Entwicklung und lerne HTML, CSS und JavaScript. Ich erstelle gerne responsive Websites und interaktive Anwendungen, die reale Probleme lösen.",
+                "about-name": "Name: Max Mustermann",
+                "about-age": "Alter: 15",
+                "about-location": "Ort: Berlin, Deutschland",
+                "about-cta": "Lebenslauf herunterladen",
+                
+                // Skills Section
+                "skills-title": "Meine Fähigkeiten",
+                "skills-subtitle": "Was ich bisher gelernt habe",
+                "skills-frontend": "Frontend-Entwicklung",
+                "skills-design": "Design",
+                "skills-other": "Weitere Fähigkeiten",
+                
+                // Projects Section
+                "projects-title": "Meine Projekte",
+                "projects-subtitle": "Einige meiner neuesten Arbeiten",
+                "projects-filter-all": "Alle",
+                "projects-filter-web": "Web",
+                "projects-filter-app": "App",
+                "projects-filter-design": "Design",
+                
+                // Project 1
+                "project1-title": "Persönlicher Blog",
+                "project1-category": "Webentwicklung",
+                "project1-description": "Eine responsive Blog-Website, erstellt mit HTML, CSS und JavaScript. Zu den Funktionen gehören Dark Mode, responsives Design und ein Kommentarsystem.",
+                
+                // Project 2
+                "project2-title": "UI-Design-Sammlung",
+                "project2-category": "UI/UX-Design",
+                "project2-description": "Eine Sammlung von UI-Designs für mobile Anwendungen, erstellt mit Figma. Enthält Wireframes, Prototypen und finale Designs.",
+                
+                // Project 3
+                "project3-title": "Wetter-App",
+                "project3-category": "Web-Anwendung",
+                "project3-description": "Eine Wetter-Anwendung, die aktuelles Wetter und Vorhersagen für jeden Ort anzeigt. Erstellt mit HTML, CSS und JavaScript unter Verwendung einer Wetter-API.",
+                
+                // Project 4
+                "project4-title": "Schul-AG-Website",
+                "project4-category": "Webentwicklung",
+                "project4-description": "Eine Website für unsere Schul-Programmier-AG mit Veranstaltungsinformationen, Ressourcen und einem Mitgliederregistrierungssystem.",
+                
+                // Project 5
+                "project5-title": "Logo-Design-Portfolio",
+                "project5-category": "Grafikdesign",
+                "project5-description": "Eine Sammlung von Logo-Designs, die für verschiedene Projekte und Wettbewerbe erstellt wurden. Enthält den Designprozess und die fertigen Produkte.",
+                
+                // Project 6
+                "project6-title": "To-Do-Listen-App",
+                "project6-category": "Web-Anwendung",
+                "project6-description": "Eine einfache To-Do-Listen-Anwendung mit Funktionen wie Aufgabenkategorien, Fälligkeitsdaten und lokalem Speicher zum Speichern von Aufgaben.",
+                
+                // Contact Section
+                "contact-title": "Kontaktiere mich",
+                "contact-subtitle": "Nimm Kontakt mit mir auf",
+                "contact-location-title": "Standort",
+                "contact-location": "Berlin, Deutschland",
+                "contact-email-title": "E-Mail",
+                "contact-phone-title": "Telefon",
+                "contact-languages-title": "Sprachen",
+                "contact-languages": "Deutsch (Muttersprache), Englisch (Fließend), Französisch (Grundkenntnisse)",
+                "contact-form-name": "Name",
+                "contact-form-email": "E-Mail",
+                "contact-form-subject": "Betreff",
+                "contact-form-message": "Nachricht",
+                "contact-form-submit": "Nachricht senden",
+                
+                // Footer
+                "footer-text": "Eine Präsentation meiner Projekte und Fähigkeiten als Schüler-Entwickler.",
+                "footer-links-title": "Schnelllinks",
+                "footer-link-home": "Startseite",
+                "footer-link-about": "Über mich",
+                "footer-link-skills": "Fähigkeiten",
+                "footer-link-projects": "Projekte",
+                "footer-link-contact": "Kontakt",
+                "footer-resources-title": "Ressourcen",
+                "footer-resource-1": "Mein Blog",
+                "footer-resource-2": "Lernressourcen",
+                "footer-resource-3": "Programmier-Challenges",
+                "footer-resource-4": "Design-Inspiration",
+                "footer-copyright": "© 2025 Mein Portfolio. Alle Rechte vorbehalten."
+            },
+            fr: {
+                // Navigation
+                "nav-home": "Accueil",
+                "nav-about": "À propos",
+                "nav-skills": "Compétences",
+                "nav-projects": "Projets",
+                "nav-contact": "Contact",
+                
+                // Hero Section
+                "hero-title": "Bonjour, je suis <span class='name'>Max Mustermann</span>",
+                "hero-subtitle": "Un étudiant développeur passionné d'Allemagne, explorant le monde du développement web et du design.",
+                "hero-cta-projects": "Voir mon travail",
+                "hero-cta-contact": "Me contacter",
+                
+                // About Section
+                "about-title": "À propos de moi",
+                "about-subtitle": "Apprenez à mieux me connaître",
+                "about-heading": "Étudiant & Développeur",
+                "about-text-1": "Bonjour! Je suis un étudiant de 15 ans d'Allemagne passionné par la technologie et la programmation. J'ai commencé mon parcours de codage à l'âge de 12 ans et je suis fasciné par le monde du développement web depuis.",
+                "about-text-2": "Actuellement, je me concentre sur le développement front-end, en apprenant HTML, CSS et JavaScript. J'aime créer des sites web responsifs et des applications interactives qui résolvent des problèmes réels.",
+                "about-name": "Nom: Max Mustermann",
+                "about-age": "Âge: 15",
+                "about-location": "Lieu: Berlin, Allemagne",
+                "about-cta": "Télécharger CV",
+                
+                // Skills Section
+                "skills-title": "Mes compétences",
+                "skills-subtitle": "Ce que j'ai appris jusqu'à présent",
+                "skills-frontend": "Développement Frontend",
+                "skills-design": "Design",
+                "skills-other": "Autres compétences",
+                
+                // Projects Section
+                "projects-title": "Mes projets",
+                "projects-subtitle": "Quelques-uns de mes travaux récents",
+                "projects-filter-all": "Tous",
+                "projects-filter-web": "Web",
+                "projects-filter-app": "App",
+                "projects-filter-design": "Design",
+                
+                // Project 1
+                "project1-title": "Blog personnel",
+                "project1-category": "Développement Web",
+                "project1-description": "Un site de blog responsive construit avec HTML, CSS et JavaScript. Les fonctionnalités incluent le mode sombre, le design responsive et un système de commentaires.",
+                
+                // Project 2
+                "project2-title": "Collection de designs UI",
+                "project2-category": "Design UI/UX",
+                "project2-description": "Une collection de designs UI pour applications mobiles, créée avec Figma. Comprend des wireframes, des prototypes et des designs finaux.",
+                
+                // Project 3
+                "project3-title": "Application météo",
+                "project3-category": "Application Web",
+                "project3-description": "Une application météo qui affiche la météo actuelle et les prévisions pour n'importe quel endroit. Construite avec HTML, CSS et JavaScript en utilisant une API météo.",
+                
+                // Project 4
+                "project4-title": "Site web du club scolaire",
+                "project4-category": "Développement Web",
+                "project4-description": "Un site web pour notre club de codage scolaire, avec des informations sur les événements, des ressources et un système d'inscription des membres.",
+                
+                // Project 5
+                "project5-title": "Portfolio de design de logos",
+                "project5-category": "Design graphique",
+                "project5-description": "Une collection de designs de logos créés pour divers projets et compétitions. Comprend le processus de design et les produits finaux.",
+                
+                // Project 6
+                "project6-title": "Application de liste de tâches",
+                "project6-category": "Application Web",
+                "project6-description": "Une application simple de liste de tâches avec des fonctionnalités comme les catégories de tâches, les dates d'échéance et le stockage local pour sauvegarder les tâches.",
+                
+                // Contact Section
+                "contact-title": "Me contacter",
+                "contact-subtitle": "Entrez en contact avec moi",
+                "contact-location-title": "Emplacement",
+                "contact-location": "Berlin, Allemagne",
+                "contact-email-title": "Email",
+                "contact-phone-title": "Téléphone",
+                "contact-languages-title": "Langues",
+                "contact-languages": "Allemand (Natif), Anglais (Courant), Français (Basique)",
+                "contact-form-name": "Nom",
+                "contact-form-email": "Email",
+                "contact-form-subject": "Sujet",
+                "contact-form-message": "Message",
+                "contact-form-submit": "Envoyer le message",
+                
+                // Footer
+                "footer-text": "Une vitrine de mes projets et compétences en tant qu'étudiant développeur.",
+                "footer-links-title": "Liens rapides",
+                "footer-link-home": "Accueil",
+                "footer-link-about": "À propos",
+                "footer-link-skills": "Compétences",
+                "footer-link-projects": "Projets",
+                "footer-link-contact": "Contact",
+                "footer-resources-title": "Ressources",
+                "footer-resource-1": "Mon blog",
+                "footer-resource-2": "Ressources d'apprentissage",
+                "footer-resource-3": "Défis de codage",
+                "footer-resource-4": "Inspiration design",
+                "footer-copyright": "© 2025 Mon Portfolio. Tous droits réservés."
+            }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for saved theme
+            if (localStorage.getItem('theme') === 'dark') {
+                document.body.classList.add('dark-mode');
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+            }
+            
+            // Check for saved language
+            const savedLang = localStorage.getItem('language') || 'en';
+            setLanguage(savedLang);
+            
+            // Initialize skill bars
+            initSkillBars();
+            
+            // Initialize animations
+            initAnimations();
+        });
+
+        // Mobile Menu Toggle
+        menuToggle.addEventListener('click', function() {
+            navLinks.classList.toggle('show');
+        });
+
+        // Theme Toggle
+        themeToggle.addEventListener('click', function() {
+            document.body.classList.toggle('dark-mode');
+            
+            if (document.body.classList.contains('dark-mode')) {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+
+        // Language Toggle
+        languageToggle.addEventListener('click', function() {
+            languageOptions.classList.toggle('show');
+        });
+
+        // Close language options when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!languageToggle.contains(e.target) && !languageOptions.contains(e.target)) {
+                languageOptions.classList.remove('show');
+            }
+        });
+
+        // Language Selection
+        document.querySelectorAll('.language-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const lang = this.getAttribute('data-lang');
+                setLanguage(lang);
+                languageOptions.classList.remove('show');
+            });
+        });
+
+        // Set Language
+        function setLanguage(lang) {
+            currentLang.textContent = lang.toUpperCase();
+            localStorage.setItem('language', lang);
+            
+            document.querySelectorAll('[data-lang]').forEach(element => {
+                const key = element.getAttribute('data-lang');
+                if (translations[lang] && translations[lang][key]) {
+                    if (key.includes('title') && translations[lang][key].includes('<span')) {
+                        element.innerHTML = translations[lang][key];
+                    } else {
+                        element.textContent = translations[lang][key];
+                    }
+                }
+            });
+        }
+
+        // Project Filtering
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remove active class from all buttons
+                filterBtns.forEach(btn => btn.classList.remove('active'));
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Get filter value
+                const filter = this.getAttribute('data-filter');
+                
+                // Filter projects
+                projectCards.forEach(card => {
+                    if (filter === 'all' || card.getAttribute('data-category') === filter) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Initialize Skill Bars
+        function initSkillBars() {
+            skillBars.forEach(bar => {
+                const width = bar.getAttribute('data-width');
+                setTimeout(() => {
+                    bar.style.width = width + '%';
+                }, 500);
+            });
+        }
+
+        // Initialize Animations
+        function initAnimations() {
+            const animateElements = document.querySelectorAll('.animate');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            animateElements.forEach(element => {
+                element.style.opacity = '0';
+                element.style.transform = 'translateY(20px)';
+                element.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                observer.observe(element);
+            });
+        }
+
+        // Scroll Event for Header and Back to Top Button
+        window.addEventListener('scroll', function() {
+            // Header scroll effect
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+            
+            // Back to top button
+            if (window.scrollY > 500) {
+                backToTop.classList.add('show');
+            } else {
+                backToTop.classList.remove('show');
+            }
+        });
+
+        // Back to Top Button Click
+        backToTop.addEventListener('click', function() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // Smooth Scrolling for Navigation Links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                
+                if (targetElement) {
+                    const headerHeight = header.offsetHeight;
+                    const targetPosition = targetElement.offsetTop - headerHeight;
+                    
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                    
+                    // Close mobile menu if open
+                    navLinks.classList.remove('show');
+                }
+            });
+        });
+
+        // Contact Form Submission
+        if (contactForm) {
+            contactForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Get form values
+                const name = document.getElementById('name').value;
+                const email = document.getElementById('email').value;
+                const subject = document.getElementById('subject').value;
+                const message = document.getElementById('message').value;
+                
+                // Simple form validation
+                if (name && email && subject && message) {
+                    // In a real application, you would send this data to a server
+                    alert('Thank you for your message! This is a demo, so no actual message was sent.');
+                    contactForm.reset();
+                } else {
+                    alert('Please fill in all fields.');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
